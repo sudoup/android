@@ -59,6 +59,7 @@ configure<ApplicationExtension> {
         targetSdk = Constants.TARGET_SDK
         versionCode = Constants.VERSION_CODE
         versionName = Constants.VERSION_NAME
+        manifestPlaceholders["appLabel"] = "Timer"
 
         experimentalProperties["android.experimental.disableGitVersion"] = true
 
@@ -103,12 +104,11 @@ configure<ApplicationExtension> {
             signingConfig = signingConfigs.getByName(Constants.RELEASE)
             manifestPlaceholders["providerAuthority"] = "${Constants.APP_NAME}.provider"
             buildConfigField("String", "FILE_PROVIDER_AUTHORITY", "\"${Constants.APP_NAME}.provider\"")
-            resValue("string", "app_name", "Timer")
         }
 
         debug {
             applicationIdSuffix = ".debug"
-            resValue("string", "app_name", "Timer Debug")
+            manifestPlaceholders["appLabel"] = "Timer Debug"
             isDebuggable = true
             manifestPlaceholders["providerAuthority"] = "${Constants.APP_NAME}.provider.debug"
             buildConfigField("String", "FILE_PROVIDER_AUTHORITY", "\"${Constants.APP_NAME}.provider.debug\"")
@@ -117,7 +117,7 @@ configure<ApplicationExtension> {
         create(Constants.NIGHTLY) {
             initWith(buildTypes.getByName(Constants.RELEASE))
             applicationIdSuffix = ".nightly"
-            resValue("string", "app_name", "Timer Nightly")
+            manifestPlaceholders["appLabel"] = "Timer Nightly"
             manifestPlaceholders["providerAuthority"] = "${Constants.APP_NAME}.provider.nightly"
             buildConfigField("String", "FILE_PROVIDER_AUTHORITY", "\"${Constants.APP_NAME}.provider.nightly\"")
         }
