@@ -14,9 +14,10 @@ on:
       flavor:
         description: "Product flavor"
         required: true
-        default: standalone
+        default: all
         type: choice
         options:
+          - all
           - fdroid
           - standalone
 
@@ -71,14 +72,22 @@ jobs:
 
       - name: Build APK
         run: |
-          FLAVOR="${{ inputs.flavor }}"
-          ./gradlew ":app:assemble${FLAVOR^}Release" --info
+          if [ "${{ inputs.flavor }}" = "all" ]; then
+            ./gradlew ":app:assembleFdroidRelease" ":app:assembleStandaloneRelease" --info
+          else
+            FLAVOR="${{ inputs.flavor }}"
+            ./gradlew ":app:assemble${FLAVOR^}Release" --info
+          fi
 
       - name: Find APKs
         id: apks
         run: |
-          FLAVOR="${{ inputs.flavor }}"
-          APK_LIST=$(find "app/build/outputs/apk/$FLAVOR/release" -name '*.apk' -type f | tr '\n' ' ')
+          if [ "${{ inputs.flavor }}" = "all" ]; then
+            APK_LIST=$(find "app/build/outputs/apk" -name '*.apk' -type f | tr '\n' ' ')
+          else
+            FLAVOR="${{ inputs.flavor }}"
+            APK_LIST=$(find "app/build/outputs/apk/$FLAVOR/release" -name '*.apk' -type f | tr '\n' ' ')
+          fi
           echo "paths=$APK_LIST" >> $GITHUB_OUTPUT
 
       - name: Get version
@@ -99,7 +108,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.value }}-${{ inputs.build_type }}
-          name: v${{ steps.version.outputs.value }} (${{ inputs.build_type }}, ${{ inputs.flavor }})
+          name: v${{ steps.version.outputs.value }} (${{ inputs.build_type }}${{ inputs.flavor != 'all' && format(', {0}', inputs.flavor) || '' }})
           body: |
             ${{ inputs.build_type }} build from branch ${{ github.ref_name }}
             Commit: ${{ github.sha }}
