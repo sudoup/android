@@ -73,22 +73,11 @@ jobs:
       - name: Build APK
         run: |
           if [ "${{ inputs.flavor }}" = "all" ]; then
-            ./gradlew ":app:assembleFdroidRelease" ":app:assembleStandaloneRelease" --info
+            ./gradlew ":app:assembleFdroidRelease" ":app:assembleStandaloneRelease" --warn
           else
             FLAVOR="${{ inputs.flavor }}"
-            ./gradlew ":app:assemble${FLAVOR^}Release" --info
+            ./gradlew ":app:assemble${FLAVOR^}Release" --warn
           fi
-
-      - name: Find APKs
-        id: apks
-        run: |
-          if [ "${{ inputs.flavor }}" = "all" ]; then
-            APK_LIST=$(find "app/build/outputs/apk" -name '*.apk' -type f | tr '\n' ' ')
-          else
-            FLAVOR="${{ inputs.flavor }}"
-            APK_LIST=$(find "app/build/outputs/apk/$FLAVOR/release" -name '*.apk' -type f | tr '\n' ' ')
-          fi
-          echo "paths=$APK_LIST" >> $GITHUB_OUTPUT
 
       - name: Get version
         id: version
@@ -112,7 +101,7 @@ jobs:
           body: |
             ${{ inputs.build_type }} build from branch ${{ github.ref_name }}
             Commit: ${{ github.sha }}
-          files: ${{ steps.apks.outputs.paths }}
+          files: app/build/outputs/apk/*/release/*.apk
           draft: false
           prerelease: ${{ inputs.build_type != 'release' }}
           make_latest: false
