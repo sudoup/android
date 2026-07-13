@@ -17,7 +17,7 @@ dependencyResolutionManagement {
 	}
 }
 
-rootProject.name = "WG Tunnel"
+rootProject.name = "Timer"
 
 include(":app")
 include(":logcatter")
