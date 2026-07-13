@@ -85,18 +85,10 @@ jobs:
           VERSION=$(grep -oP 'VERSION_NAME = "\K[^"]+' buildSrc/src/main/kotlin/Constants.kt)
           echo "value=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Delete previous release
-        run: |
-          TAG="${{ steps.version.outputs.value }}-${{ inputs.build_type }}"
-          gh release delete "$TAG" --yes --repo ${{ github.repository }} 2>/dev/null || true
-          git push --delete origin "$TAG" 2>/dev/null || true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Create Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ steps.version.outputs.value }}-${{ inputs.build_type }}
+          tag_name: v${{ steps.version.outputs.value }}-${{ inputs.build_type }}+${{ github.run_id }}
           name: v${{ steps.version.outputs.value }} (${{ inputs.build_type }}${{ inputs.flavor != 'all' && format(', {0}', inputs.flavor) || '' }})
           body: |
             ${{ inputs.build_type }} build from branch ${{ github.ref_name }}
