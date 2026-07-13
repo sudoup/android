@@ -73,10 +73,10 @@ jobs:
       - name: Build APK
         run: |
           if [ "${{ inputs.flavor }}" = "all" ]; then
-            ./gradlew ":app:assembleFdroidRelease" ":app:assembleStandaloneRelease" --warn
+            ./gradlew ":app:assembleFdroidRelease" ":app:assembleStandaloneRelease"
           else
             FLAVOR="${{ inputs.flavor }}"
-            ./gradlew ":app:assemble${FLAVOR^}Release" --warn
+            ./gradlew ":app:assemble${FLAVOR^}Release"
           fi
 
       - name: Get version
