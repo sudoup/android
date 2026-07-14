@@ -59,7 +59,7 @@ configure<ApplicationExtension> {
         targetSdk = Constants.TARGET_SDK
         versionCode = Constants.VERSION_CODE
         versionName = Constants.VERSION_NAME
-        manifestPlaceholders["appLabel"] = "Timer"
+        manifestPlaceholders["appLabel"] = "Video Player"
 
         experimentalProperties["android.experimental.disableGitVersion"] = true
 
@@ -108,7 +108,7 @@ configure<ApplicationExtension> {
 
         debug {
             applicationIdSuffix = ".debug"
-            manifestPlaceholders["appLabel"] = "Timer Debug"
+            manifestPlaceholders["appLabel"] = "Video Player Debug"
             isDebuggable = true
             manifestPlaceholders["providerAuthority"] = "${Constants.APP_NAME}.provider.debug"
             buildConfigField("String", "FILE_PROVIDER_AUTHORITY", "\"${Constants.APP_NAME}.provider.debug\"")
@@ -117,7 +117,7 @@ configure<ApplicationExtension> {
         create(Constants.NIGHTLY) {
             initWith(buildTypes.getByName(Constants.RELEASE))
             applicationIdSuffix = ".nightly"
-            manifestPlaceholders["appLabel"] = "Timer Nightly"
+            manifestPlaceholders["appLabel"] = "Video Player Nightly"
             manifestPlaceholders["providerAuthority"] = "${Constants.APP_NAME}.provider.nightly"
             buildConfigField("String", "FILE_PROVIDER_AUTHORITY", "\"${Constants.APP_NAME}.provider.nightly\"")
         }

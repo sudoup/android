@@ -425,8 +425,8 @@ class SharedAppViewModel(
                 .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm"))
 
         return when (tunnelCount) {
-            1 -> "Timer_Export_$timestamp.zip"
-            else -> "Timer_Export_${timestamp}_${tunnelCount}_Tunnels.zip"
+            1 -> "VideoPlayer_Export_$timestamp.zip"
+            else -> "VideoPlayer_Export_${timestamp}_${tunnelCount}_Tunnels.zip"
         }
     }
 

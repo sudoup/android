@@ -17,7 +17,7 @@ dependencyResolutionManagement {
 	}
 }
 
-rootProject.name = "Timer"
+rootProject.name = "Video Player"
 
 include(":app")
 include(":logcatter")

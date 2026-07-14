@@ -74,7 +74,7 @@ fun TunnelsScreen(sharedViewModel: SharedAppViewModel = koinActivityViewModel())
             LocalSideEffect.Modal.DeleteTunnels -> showDeleteModal = true
             LocalSideEffect.Sheet.ExportTunnels -> {
                 if (context.hasSAFSupport(FileUtils.ZIP_FILE_MIME_TYPE)) {
-                    val fileName = "timer_export_${Instant.now().toUserFriendlyTimestamp()}.zip"
+                    val fileName = "videoplayer_export_${Instant.now().toUserFriendlyTimestamp()}.zip"
                     selectedTunnelsExportLauncher.launch(fileName)
                 } else {
                     sharedViewModel.showSnackMessage(
