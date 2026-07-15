@@ -73,6 +73,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.dokar.sonner.TextToastAction
+import com.dokar.sonner.Toast
 import com.dokar.sonner.ToastType
 import com.dokar.sonner.Toaster
 import com.dokar.sonner.rememberToasterState
@@ -83,6 +84,7 @@ import com.zaneschepke.wireguardautotunnel.domain.model.TunnelConfig
 import com.zaneschepke.wireguardautotunnel.domain.repository.AppStateRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.TunnelRepository
 import com.zaneschepke.wireguardautotunnel.domain.sideeffect.GlobalSideEffect
+import com.zaneschepke.wireguardautotunnel.service.tile.TunnelTileRefresher
 import com.zaneschepke.wireguardautotunnel.ui.LocalIsAndroidTV
 import com.zaneschepke.wireguardautotunnel.ui.LocalNavController
 import com.zaneschepke.wireguardautotunnel.ui.common.banner.AppAlertBanner
@@ -149,6 +151,7 @@ import de.raphaelebner.roomdatabasebackup.core.OnCompleteListener.Companion.EXIT
 import de.raphaelebner.roomdatabasebackup.core.RoomBackup
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -169,6 +172,8 @@ class MainActivity : AppCompatActivity() {
 
     val viewModel by viewModel<SharedAppViewModel>()
     private lateinit var roomBackup: RoomBackup
+
+    private val snackbarChannel = Channel<GlobalSideEffect.Snackbar>(Channel.UNLIMITED)
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -299,21 +304,7 @@ class MainActivity : AppCompatActivity() {
                                 Pair(sideEffect.requestingMode, sideEffect.config)
                             vpnActivity.launch(VpnService.prepare(this@MainActivity))
                         }
-
-                        is GlobalSideEffect.Snackbar -> {
-                            when (sideEffect.type) {
-                                ToastType.Warning,
-                                ToastType.Error -> toaster.dismissAll()
-                                else -> Unit
-                            }
-
-                            toaster.show(
-                                message = sideEffect.message.asString(context),
-                                type = sideEffect.type,
-                                duration = (sideEffect.durationMs ?: 4000L).milliseconds,
-                            )
-                        }
-
+                        is GlobalSideEffect.Snackbar -> snackbarChannel.send(sideEffect)
                         is GlobalSideEffect.LaunchUrl -> context.openWebUrl(sideEffect.url)
                         is GlobalSideEffect.InstallApk -> context.installApk(sideEffect.apk)
                     }
@@ -321,6 +312,36 @@ class MainActivity : AppCompatActivity() {
             }
 
             if (!uiState.isAppLoaded) return@setContent
+
+            // Refresh tiles on tunnel size changes to catch deletes and adds
+            LaunchedEffect(uiState.tunnelNames.size) { TunnelTileRefresher.refresh(context) }
+
+            LaunchedEffect(Unit) {
+                var currentToast: Toast? = null
+                var lastShownTime = 0L
+
+                for (sideEffect in snackbarChannel) {
+                    val now = System.currentTimeMillis()
+                    val timeSinceLastToast = now - lastShownTime
+
+                    // If we have an active toast and hasn't shown for 2 seconds
+                    if (currentToast != null && timeSinceLastToast < 2_000L) {
+                        delay(2_000L - timeSinceLastToast)
+                    }
+
+                    // Dismiss current
+                    currentToast?.let { toaster.dismiss(it) }
+
+                    // Show new toast
+                    currentToast =
+                        toaster.show(
+                            message = sideEffect.message.asString(context),
+                            type = sideEffect.type,
+                            duration = (sideEffect.durationMs ?: 4_000L).milliseconds,
+                        )
+                    lastShownTime = System.currentTimeMillis()
+                }
+            }
 
             var showLock by remember {
                 mutableStateOf(uiState.pinLockEnabled && !uiState.isPinVerified)
@@ -605,6 +626,7 @@ class MainActivity : AppCompatActivity() {
                             }
                             Toaster(
                                 state = toaster,
+                                maxVisibleToasts = 1,
                                 alignment = Alignment.BottomCenter,
                                 offset = IntOffset(0, -220),
                                 richColors = true,

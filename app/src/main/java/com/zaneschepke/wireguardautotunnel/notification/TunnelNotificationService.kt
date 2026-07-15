@@ -22,6 +22,8 @@ interface TunnelNotificationService {
 
     fun showDynamicDnsUpdate(tunnelName: String)
 
+    fun showSeamlessRecoveryAttempt(tunnelName: String)
+
     fun showVpnRequired()
 
     fun showSocks5PortUnavailable(port: Int, tunnelName: String)

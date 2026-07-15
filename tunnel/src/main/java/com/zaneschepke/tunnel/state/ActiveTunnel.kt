@@ -13,4 +13,7 @@ data class ActiveTunnel(
     val interfaceName: String? = null,
     val activeConfig: ActiveConfig? = null,
     val uptime: Long? = null,
+    val recoveryAttempts: Int = 0,
+    val pendingRecovery: Boolean = false,
+    val lastRecoveryAttemptMs: Long = 0L,
 )

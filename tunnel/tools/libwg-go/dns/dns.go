@@ -61,29 +61,30 @@ func StartResolveBootstrap(
 	shared.LogDebug("DNS", "StartResolveBootstrap called: id=%d host=%s protocol=%s resolved=%s bypass=%t",
 		id, h, p, resolved, bp)
 
-	go func() {
+	go func(reqID int64, h, p, resolved, original string, bypass bool) {
 		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 		defer cancel()
 
-		shared.LogDebug("DNS", "Goroutine started for DNS bootstrap id=%d host=%s", id, h)
+		shared.LogDebug("DNS", "Goroutine started for DNS bootstrap id=%d host=%s", reqID, h)
 
-		v4, v6, err := Resolve(ctx, h, p, resolved, original, bp)
+		v4, v6, err := Resolve(ctx, h, p, resolved, original, bypass)
+
 		var resultStr string
 		if err != nil {
-			shared.LogError("DNS", "ResolveBootstrap failed id=%d host=%s: %v", id, h, err)
+			shared.LogError("DNS", "ResolveBootstrap failed id=%d host=%s: %v", reqID, h, err)
 			resultStr = "ERR|" + err.Error()
 		} else {
 			resultStr = fmt.Sprintf("v4=%s;v6=%s",
 				strings.Join(toStringSlice(v4), ","),
 				strings.Join(toStringSlice(v6), ","),
 			)
-			shared.LogDebug("DNS", "ResolveBootstrap success id=%d host=%s -> %s", id, h, resultStr)
+			shared.LogDebug("DNS", "ResolveBootstrap success id=%d host=%s -> %s", reqID, h, resultStr)
 		}
 
 		cResult := C.CString(resultStr)
-		C.NotifyDnsResult(id, cResult)
+		C.NotifyDnsResult(C.int64_t(reqID), cResult)
 		C.free(unsafe.Pointer(cResult))
-	}()
+	}(int64(id), h, p, resolved, original, bp)
 }
 
 func toStringSlice(addrs []netip.Addr) []string {

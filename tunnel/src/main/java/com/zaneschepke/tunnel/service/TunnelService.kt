@@ -72,6 +72,8 @@ class TunnelService : LifecycleService() {
                         backend.applicationProvider.proxyNotificationId,
                         notification,
                     )
+                    // refresh tile
+                    backend.applicationProvider.refreshTile(this@TunnelService)
                 }
         }
     }
@@ -94,6 +96,7 @@ class TunnelService : LifecycleService() {
                 backend.stopAllActiveTunnels()
             }
         }
+        backend.applicationProvider.refreshTile(this)
         super.onDestroy()
     }
 

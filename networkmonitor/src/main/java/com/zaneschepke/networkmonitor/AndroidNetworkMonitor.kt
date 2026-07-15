@@ -194,7 +194,7 @@ class AndroidNetworkMonitor(
     }
 
     // tracking to prevent races that occur when VPN is first activated and to prevent redundant
-    // location queries in Legacy mode
+    // location queries in all detection modes
     private val lastKnownActiveNetwork =
         MutableStateFlow<ActiveNetwork>(ActiveNetwork.Disconnected())
 
@@ -556,17 +556,9 @@ class AndroidNetworkMonitor(
                         WifiDetails(ssid, bssid.uppercase())
                     }
                     LEGACY -> {
-                        val lastActive = lastKnownActiveNetwork.value
-                        if (
-                            lastActive is ActiveNetwork.Wifi &&
-                                lastActive.networkId == network?.toString() &&
-                                lastActive.ssid != ANDROID_UNKNOWN_SSID &&
-                                lastActive.bssid != ANDROID_UNKNOWN_BSSID
-                        ) {
-                            Timber.d("Using last active network SSID+BSSID (LEGACY cache)")
-                            return WifiDetails(lastActive.ssid, lastActive.bssid.uppercase())
-                        }
-                        Timber.d("Triggering new location ping for SSID and BSSID (LEGACY)")
+                        // LEGACY mode intentionally does a fresh location-based query because cache
+                        // is now handled in buildWifiNetwork
+                        Timber.d("Triggering new location ping for SSID and BSSID (LEGACY mode)")
                         val (ssid, bssid) =
                             wifiManager?.getWifiSsidAndBssid()
                                 ?: (ANDROID_UNKNOWN_SSID to ANDROID_UNKNOWN_BSSID)
@@ -734,7 +726,6 @@ class AndroidNetworkMonitor(
                                 networkData.ethernetEvent.networkCapabilities,
                             )
                         }
-
                         networkData.wifiNetworkEvent is TransportEvent.CapabilitiesChanged &&
                             networkData.wifiNetworkEvent.networkCapabilities?.hasTransport(
                                 NetworkCapabilities.TRANSPORT_WIFI
@@ -747,7 +738,6 @@ class AndroidNetworkMonitor(
                                 lastActive = lastKnownActiveNetwork.value,
                             )
                         }
-
                         // Fallback for WiFi
                         defaultCaps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true &&
                             defaultNetwork != null -> {
@@ -758,7 +748,6 @@ class AndroidNetworkMonitor(
                                 lastActive = lastKnownActiveNetwork.value,
                             )
                         }
-
                         // Fallback for Ethernet
                         defaultCaps?.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) == true &&
                             defaultNetwork != null -> {
@@ -768,7 +757,6 @@ class AndroidNetworkMonitor(
                             val bestCellularEntry =
                                 pickBestCellularNetworkEntry()
                                     ?: activeCellularNetworks.value.entries.firstOrNull()
-
                             if (bestCellularEntry != null) {
                                 ActiveNetwork.Cellular(
                                     bestCellularEntry.key,
@@ -780,7 +768,19 @@ class AndroidNetworkMonitor(
                         }
                     }
 
-                lastKnownActiveNetwork.value = physicalNetwork
+                // Only store a Wi-Fi network if it has both a real SSID and BSSID
+                // This prevents lastKnownActiveNetwork from being updated with
+                // android default ssid bssid values, especially on VPN starts
+                if (
+                    physicalNetwork is ActiveNetwork.Wifi &&
+                        physicalNetwork.ssid != ANDROID_UNKNOWN_SSID &&
+                        physicalNetwork.bssid != ANDROID_UNKNOWN_BSSID
+                ) {
+                    lastKnownActiveNetwork.value = physicalNetwork
+                } else if (physicalNetwork !is ActiveNetwork.Wifi) {
+                    // Cellular, Ethernet, or Disconnected are always safe to store
+                    lastKnownActiveNetwork.value = physicalNetwork
+                }
 
                 val underlyingNetwork: Network? =
                     when (physicalNetwork) {
@@ -827,37 +827,47 @@ class AndroidNetworkMonitor(
     ): ActiveNetwork.Wifi {
         val currentNetworkId = network.toString()
 
-        // Use cache in legacy mode
-        val (ssid, securityType, bssid) =
-            if (
-                detectionMethod == LEGACY &&
-                    lastActive is ActiveNetwork.Wifi &&
-                    lastActive.networkId == currentNetworkId &&
-                    lastActive.ssid != ANDROID_UNKNOWN_SSID &&
-                    lastActive.bssid != ANDROID_UNKNOWN_BSSID
-            ) {
-                Triple(lastActive.ssid, lastActive.securityType, lastActive.bssid)
+        // Generalized cache check for all detection mode
+        // This prevents <unknown ssid> false positives during VPN starts
+        if (
+            lastActive is ActiveNetwork.Wifi &&
+                lastActive.networkId == currentNetworkId &&
+                lastActive.ssid != ANDROID_UNKNOWN_SSID &&
+                lastActive.bssid != ANDROID_UNKNOWN_BSSID
+        ) {
+            Timber.d(
+                "Reusing cached WiFi details (ssid=${lastActive.ssid}) " +
+                    "for same networkId during VPN transition"
+            )
+            val linkPropsSnapshot =
+                LinkPropertiesSnapshot.from(connectivityManager?.getLinkProperties(network))
+            return ActiveNetwork.Wifi(
+                ssid = lastActive.ssid,
+                bssid = lastActive.bssid,
+                securityType = lastActive.securityType,
+                networkId = currentNetworkId,
+                network = network,
+                capabilities = caps,
+                linkProperties = linkPropsSnapshot,
+            )
+        }
+
+        // No good cached network, fetch fresh details
+        val wifiDetails = getWifiDetailsByDetectionMethod(detectionMethod, caps, network)
+        val fetchedSecurity =
+            if (detectionMethod == DEFAULT && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                caps.getWifiSecurityType()
             } else {
-                // Fallback
-                val wifiDetails = getWifiDetailsByDetectionMethod(detectionMethod, caps, network)
-                val fetchedSecurity =
-                    if (
-                        detectionMethod == DEFAULT && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-                    ) {
-                        caps.getWifiSecurityType()
-                    } else {
-                        wifiManager?.getLegacySecurityType()
-                    }
-                Triple(wifiDetails.ssid, fetchedSecurity, wifiDetails.bssid)
+                wifiManager?.getLegacySecurityType()
             }
 
         val linkPropsSnapshot =
             LinkPropertiesSnapshot.from(connectivityManager?.getLinkProperties(network))
 
         return ActiveNetwork.Wifi(
-            ssid = ssid,
-            bssid = bssid,
-            securityType = securityType,
+            ssid = wifiDetails.ssid,
+            bssid = wifiDetails.bssid,
+            securityType = fetchedSecurity,
             networkId = currentNetworkId,
             network = network,
             capabilities = caps,

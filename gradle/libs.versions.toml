@@ -8,7 +8,7 @@ koinBom = "4.2.2"
 kotlinxCoroutinesAndroid = "1.11.0"
 leakcanaryAndroid = "3.0-alpha-9"
 lottieCompose = "6.7.1"
-orbitCompose = "11.0.0"
+orbitCompose = "12.0.0"
 roomdatabasebackup = "1.1.0"
 shizuku = "13.1.5"
 appcompat = "1.7.1"
@@ -29,7 +29,7 @@ semver4j = "3.1.0"
 slf4jAndroid = "1.7.36"
 timber = "5.0.1"
 androidGradlePlugin = "9.2.1"
-kotlin = "2.4.0"
+kotlin = "2.4.10"
 ksp = "2.3.10"
 composeBom = "2026.06.01"
 compose = "1.11.4"
@@ -47,7 +47,6 @@ lifecycleViewmodelNavigation3 = "2.11.0"
 parser = "1.1.1"
 relinker = "1.4.5"
 libsu = "6.0.0"
-jetbrainsKotlinJvm = "2.4.0"
 sonner = "0.3.9"
 aboutlibraries = "15.0.3"
 
@@ -213,5 +212,5 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 grgit = { id = "org.ajoberstar.grgit.service", version.ref = "gradlePlugins-grgit" }
 ktfmt = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
 licensee = { id = "app.cash.licensee", version.ref = "licensee" }
-jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrainsKotlinJvm" }
+jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 aboutlibraries = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutlibraries" }

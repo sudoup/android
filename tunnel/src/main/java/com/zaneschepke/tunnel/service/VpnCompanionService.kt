@@ -74,6 +74,8 @@ class VpnCompanionService : LifecycleService() {
                         backend.applicationProvider.vpnNotificationId,
                         notification,
                     )
+                    // refresh tile
+                    backend.applicationProvider.refreshTile(this@VpnCompanionService)
                 }
         }
     }
@@ -86,6 +88,7 @@ class VpnCompanionService : LifecycleService() {
     override fun onDestroy() {
         Timber.d("CompanionService destroyed")
         serviceManager.clearCompanionService()
+        backend.applicationProvider.refreshTile(this)
         super.onDestroy()
     }
 }

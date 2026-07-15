@@ -16,11 +16,14 @@ import com.zaneschepke.tunnel.state.BackendStatus
 import com.zaneschepke.tunnel.state.BootstrapState
 import com.zaneschepke.tunnel.state.EngineStartResult
 import com.zaneschepke.tunnel.state.KillSwitchState
+import com.zaneschepke.tunnel.util.PublicKey
 import com.zaneschepke.tunnel.util.RootShell
 import com.zaneschepke.tunnel.util.RootShellException
 import com.zaneschepke.tunnel.util.buildResolvedPeers
 import com.zaneschepke.tunnel.util.findEndpointMismatches
 import com.zaneschepke.tunnel.util.toHostMap
+import com.zaneschepke.wireguardautotunnel.parser.ActiveConfig
+import com.zaneschepke.wireguardautotunnel.parser.Config
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -130,21 +133,26 @@ class TunnelBackend(
         }
 
     override suspend fun bounceTunnelDevice(tunnelId: Int) = tunnelMutex.withLock {
-        Timber.i("Bouncing tunnel device for tunnel id: $tunnelId...")
-        val activeConfig =
-            _status.value.activeTunnels[tunnelId]
-                ?: return@withLock Timber.w("No active config to bounce")
-        val mode = activeConfig.mode ?: return@withLock
-        val tunnel = activeConfig.tunnel ?: return@withLock
-        val handle =
-            byTunnelId[tunnelId] ?: return@withLock Timber.w("Handle missing for bounce config..")
+        val active = _status.value.activeTunnels[tunnelId] ?: return@withLock
+        val previousActiveConfig = active.activeConfig
+        val mode = active.mode ?: return@withLock
+        val tunnel = active.tunnel ?: return@withLock
+        val handle = byTunnelId[tunnelId] ?: return@withLock
+
         engine.stop(handle, mode)
-        resolveAndStartEngine(tunnel, mode)
-        Timber.i("Tunnel device for tunnel $tunnelId bounced successfully.")
+        resolveAndStartEngine(tunnel, mode, previousActiveConfig = previousActiveConfig)
     }
 
-    private suspend fun resolveAndStartEngine(tunnel: Tunnel, mode: BackendMode) {
-        updateTunnelBootstrapState(tunnel.id, BootstrapState.ResolvingDns)
+    private suspend fun resolveAndStartEngine(
+        tunnel: Tunnel,
+        mode: BackendMode,
+        previousActiveConfig: ActiveConfig? = null,
+    ) {
+        val hasDynamic = hasDynamicEndpoints(mode)
+
+        if (hasDynamic) {
+            updateTunnelBootstrapState(tunnel.id, BootstrapState.ResolvingDns)
+        }
 
         val resultMap = endpointResolver.resolvePeers(mode)
 
@@ -167,6 +175,58 @@ class TunnelBackend(
 
         val result = engine.start(tunnel.id, updatedMode)
         onEngineStartResult(tunnel.id, result)
+        if (previousActiveConfig != null) {
+            emitRecoveryEventType(tunnel.id, previousActiveConfig, resolvedConfig)
+        }
+    }
+
+    private suspend fun emitRecoveryEventType(
+        tunnelId: Int,
+        previous: ActiveConfig,
+        newConfig: Config,
+    ) {
+        val oldPeers = previous.peers.associateBy { it.publicKey }
+        val newPeers = newConfig.peers.associateBy { it.publicKey }
+
+        val ddnsChangedPeers = mutableListOf<PublicKey>()
+        var ipv6ToIpv4Fallback = false
+
+        for ((pubKey, newPeer) in newPeers) {
+            val oldPeer = oldPeers[pubKey] ?: continue
+            if (oldPeer.endpoint == newPeer.endpoint) continue
+
+            val oldEndpoint = oldPeer.endpoint.orEmpty()
+            val newEndpoint = newPeer.endpoint.orEmpty()
+
+            val oldHadIpv6 = oldEndpoint.contains("[")
+            val newHasIpv6 = newEndpoint.contains("[")
+
+            when {
+                // DDNS change
+                !oldHadIpv6 &&
+                    !newHasIpv6 &&
+                    oldEndpoint.substringBeforeLast(":") !=
+                        newEndpoint.substringBeforeLast(":") -> {
+                    ddnsChangedPeers += pubKey
+                }
+
+                // IPv4 fallback
+                oldHadIpv6 && !newHasIpv6 -> {
+                    ipv6ToIpv4Fallback = true
+                }
+
+                // Ignore upgrade, handled in the IPv6 recovery job
+                !oldHadIpv6 && newHasIpv6 -> Unit
+            }
+        }
+
+        if (ddnsChangedPeers.isNotEmpty()) {
+            _events.emit(TunnelEvent.DynamicDnsUpdate(tunnelId, ddnsChangedPeers))
+        }
+
+        if (ipv6ToIpv4Fallback) {
+            _events.emit(TunnelEvent.FallbackToIpv4(tunnelId))
+        }
     }
 
     private fun startTunnelBootstrapJob(tunnel: Tunnel, mode: BackendMode) = scope.launch {
@@ -238,7 +298,7 @@ class TunnelBackend(
     private suspend fun runScripts(commands: List<String>, tunnelId: Int) {
         try {
             commands.forEach { cmd ->
-                withTimeout(3_000.milliseconds) {
+                withTimeout(3_000L.milliseconds) {
                     withContext(Dispatchers.IO) { RootShell.run(cmd) }
                 }
             }
@@ -455,6 +515,15 @@ class TunnelBackend(
                     ActiveNetwork.Disconnected
 
             if (currentState is Tunnel.State.Up.HandshakeFailure && isNetworkStillConnected) {
+                val currentAttempts = _status.value.activeTunnels[tunnelId]?.recoveryAttempts ?: 0
+                updateActiveTunnel(tunnelId) {
+                    it.copy(
+                        recoveryAttempts = currentAttempts + 1,
+                        pendingRecovery = true,
+                        lastRecoveryAttemptMs = System.currentTimeMillis(),
+                    )
+                }
+                _events.emit(TunnelEvent.SeamlessRecoveryAttempted(tunnelId))
                 Timber.i(
                     "Advanced recovery: bouncing tunnel $tunnelId after persistent handshake failure"
                 )
@@ -510,7 +579,6 @@ class TunnelBackend(
                 continue
             }
 
-            // 5. Safe to proceed with procedural recovery logic
             val activeConfig =
                 try {
                     val handle =

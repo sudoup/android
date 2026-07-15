@@ -111,78 +111,6 @@ class AndroidTunnelNotificationService(private val notificationService: Notifica
         )
     }
 
-    private fun updateGroupNotification(
-        tunnelNotificationLines: Map<Int, TunnelNotificationLine>,
-        notificationId: Int,
-        channel: NotificationChannels.Tunnel,
-        groupKey: String,
-    ) {
-        if (tunnelNotificationLines.isEmpty()) {
-            notificationService.remove(notificationId)
-            return
-        }
-
-        val context = notificationService.context
-
-        val formattedLines =
-            tunnelNotificationLines.values.map { line ->
-                val status = line.displayState.asLocalizedString(context)
-                context.getString(R.string.notification_tunnel_status_format, line.name, status)
-            }
-
-        val description = formattedLines.joinToString("\n")
-
-        val actions =
-            if (tunnelNotificationLines.size == 1) {
-                val tunnelId = tunnelNotificationLines.keys.first()
-                listOf(
-                    notificationService.createNotificationAction(
-                        notificationAction = NotificationAction.TUNNEL_OFF,
-                        extraId = tunnelId,
-                    )
-                )
-            } else {
-                listOf(
-                    notificationService.createNotificationAction(
-                        notificationAction = NotificationAction.STOP_ALL,
-                        extraId = null,
-                    )
-                )
-            }
-
-        val title =
-            when (channel) {
-                is NotificationChannels.Tunnel.VPN -> context.getString(R.string.vpn)
-                is NotificationChannels.Tunnel.Proxy -> context.getString(R.string.proxy)
-            }
-
-        val style =
-            if (tunnelNotificationLines.size > 1) {
-                NotificationCompat.InboxStyle()
-                    .setBigContentTitle(title)
-                    .setSummaryText(
-                        "${tunnelNotificationLines.size} ${context.getString(R.string.tunnels).lowercase()}"
-                    )
-                    .also { inboxStyle -> formattedLines.forEach { inboxStyle.addLine(it) } }
-            } else {
-                null
-            }
-
-        val notification =
-            notificationService.createNotification(
-                channel = channel,
-                title = title,
-                description = description,
-                actions = actions,
-                onGoing = true,
-                onlyAlertOnce = true,
-                groupKey = groupKey,
-                style = style,
-            )
-
-        notificationService.show(notificationId, notification)
-    }
-
     override fun updateVpnPersistentNotification(
         tunnelNotificationLines: Map<Int, TunnelNotificationLine>
     ) {
@@ -217,22 +145,29 @@ class AndroidTunnelNotificationService(private val notificationService: Notifica
 
     override fun showIpv4Fallback(tunnelName: String) {
         showEvent(
-            title = context.getString(R.string.ipv4_fallback),
+            title = "${context.getString(R.string.ipv4_fallback)} • $tunnelName",
             message = context.getString(R.string.notification_ipv4_fallback_message, tunnelName),
         )
     }
 
     override fun showIpv6Recovery(tunnelName: String) {
         showEvent(
-            title = context.getString(R.string.ipv6_recovery),
+            title = "${context.getString(R.string.ipv6_recovery)} • $tunnelName",
             message = context.getString(R.string.notification_ipv6_recovery_message, tunnelName),
         )
     }
 
     override fun showDynamicDnsUpdate(tunnelName: String) {
         showEvent(
-            title = context.getString(R.string.dynamic_dns_update),
+            title = "${context.getString(R.string.dynamic_dns_update)} • $tunnelName",
             message = context.getString(R.string.notification_dynamic_dns_message, tunnelName),
+        )
+    }
+
+    override fun showSeamlessRecoveryAttempt(tunnelName: String) {
+        showEvent(
+            title = "${context.getString(R.string.seamless_recovery)} • $tunnelName",
+            message = context.getString(R.string.seamless_recovery_attempt_message),
         )
     }
 
