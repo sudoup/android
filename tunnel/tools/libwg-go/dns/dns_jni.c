@@ -55,19 +55,34 @@ void NotifyDnsResult(int64_t id, const char* result) {
 
 JNIEXPORT void JNICALL
 Java_com_zaneschepke_tunnel_backend_dns_NativeDnsResolver_startBootstrapResolution(
-        JNIEnv* env, jclass clazz, jlong id, jstring host, jstring protocol, jstring resolvedUpstream, jstring originalUpstream, jint bypass)
+        JNIEnv* env,
+        jclass clazz,
+        jlong id,
+        jstring host,
+        jstring protocol,
+        jstring resolvedUpstream,
+        jstring originalUpstream,
+        jint bypass)
 {
-    // Get JVM pointers
-    const char* chost = (*env)->GetStringUTFChars(env, host, NULL);
-    const char* cprotocol = (*env)->GetStringUTFChars(env, protocol, NULL);
-    const char* cresolvedUpstream = (*env)->GetStringUTFChars(env, resolvedUpstream, NULL);
-    const char* coriginalUpstream = (*env)->GetStringUTFChars(env, originalUpstream, NULL);
 
-    StartResolveBootstrap((int64_t)id, chost, cprotocol, cresolvedUpstream, coriginalUpstream, bypass ? 1 : 0);
+    const char* chost = host ? (*env)->GetStringUTFChars(env, host, NULL) : "";
+    const char* cprotocol = protocol ? (*env)->GetStringUTFChars(env, protocol, NULL) : "";
+    const char* cresolvedUpstream = resolvedUpstream ? (*env)->GetStringUTFChars(env, resolvedUpstream, NULL) : "";
+    const char* coriginalUpstream = originalUpstream ? (*env)->GetStringUTFChars(env, originalUpstream, NULL) : "";
 
-    // Release
-    (*env)->ReleaseStringUTFChars(env, host, chost);
-    (*env)->ReleaseStringUTFChars(env, protocol, cprotocol);
-    (*env)->ReleaseStringUTFChars(env, resolvedUpstream, cresolvedUpstream);
-    (*env)->ReleaseStringUTFChars(env, originalUpstream, coriginalUpstream);
+    // Function will synchronously copy before returning
+    StartResolveBootstrap(
+            (int64_t)id,
+            chost,
+            cprotocol,
+            cresolvedUpstream,
+            coriginalUpstream,
+            bypass ? 1 : 0
+    );
+
+    // Release everything after copied
+    if (host) (*env)->ReleaseStringUTFChars(env, host, chost);
+    if (protocol) (*env)->ReleaseStringUTFChars(env, protocol, cprotocol);
+    if (resolvedUpstream) (*env)->ReleaseStringUTFChars(env, resolvedUpstream, cresolvedUpstream);
+    if (originalUpstream) (*env)->ReleaseStringUTFChars(env, originalUpstream, coriginalUpstream);
 }

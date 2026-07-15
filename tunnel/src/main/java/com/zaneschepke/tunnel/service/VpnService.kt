@@ -11,6 +11,7 @@ import com.zaneschepke.hevtunnel.TProxyService
 import com.zaneschepke.tunnel.Tunnel
 import com.zaneschepke.tunnel.backend.Backend
 import com.zaneschepke.tunnel.backend.KillSwitch
+import com.zaneschepke.tunnel.backend.ProxyBackend
 import com.zaneschepke.tunnel.backend.SocketProtector
 import com.zaneschepke.tunnel.model.KillSwitchConfig
 import com.zaneschepke.tunnel.service.ServiceManager.Companion.DEFAULT_MTU
@@ -55,6 +56,7 @@ class VpnService : android.net.VpnService(), KillSwitch, SocketProtector {
     override fun onDestroy() {
         Timber.d("VpnService destroyed")
         try {
+            ProxyBackend.setSocketProtector(null)
             serviceManager.clearVpnService()
             closeVpnTunnelFd()
             disableKillSwitch()
@@ -68,6 +70,7 @@ class VpnService : android.net.VpnService(), KillSwitch, SocketProtector {
 
     override fun onRevoke() {
         Timber.w("VPN revoked by user via system settings")
+        ProxyBackend.setSocketProtector(null)
         disableKillSwitch()
         stopHevSocks5Bridge()
         shutdownScope.launch { backend.stopAllActiveTunnels() }
