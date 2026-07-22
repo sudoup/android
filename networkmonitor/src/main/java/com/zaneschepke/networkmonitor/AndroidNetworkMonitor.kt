@@ -715,6 +715,8 @@ class AndroidNetworkMonitor(
                         )
                     }
 
+                val defaultIsVpn = defaultCaps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+
                 val physicalNetwork: ActiveNetwork =
                     when {
                         networkData.ethernetEvent is TransportEvent.CapabilitiesChanged &&
@@ -726,6 +728,7 @@ class AndroidNetworkMonitor(
                                 networkData.ethernetEvent.networkCapabilities,
                             )
                         }
+
                         networkData.wifiNetworkEvent is TransportEvent.CapabilitiesChanged &&
                             networkData.wifiNetworkEvent.networkCapabilities?.hasTransport(
                                 NetworkCapabilities.TRANSPORT_WIFI
@@ -738,8 +741,10 @@ class AndroidNetworkMonitor(
                                 lastActive = lastKnownActiveNetwork.value,
                             )
                         }
-                        // Fallback for WiFi
-                        defaultCaps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true &&
+
+                        // Only use default as Wi‑Fi if it is not the VPN network
+                        !defaultIsVpn &&
+                            defaultCaps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) &&
                             defaultNetwork != null -> {
                             buildWifiNetwork(
                                 network = defaultNetwork,
@@ -748,11 +753,13 @@ class AndroidNetworkMonitor(
                                 lastActive = lastKnownActiveNetwork.value,
                             )
                         }
-                        // Fallback for Ethernet
-                        defaultCaps?.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) == true &&
+
+                        !defaultIsVpn &&
+                            defaultCaps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) &&
                             defaultNetwork != null -> {
                             ActiveNetwork.Ethernet(defaultNetwork, defaultCaps)
                         }
+
                         else -> {
                             val bestCellularEntry =
                                 pickBestCellularNetworkEntry()
@@ -763,7 +770,8 @@ class AndroidNetworkMonitor(
                                     bestCellularEntry.value,
                                 )
                             } else {
-                                ActiveNetwork.Disconnected()
+                                // Keep last known physical during VPN transition
+                                lastKnownActiveNetwork.value
                             }
                         }
                     }
@@ -866,7 +874,8 @@ class AndroidNetworkMonitor(
 
         return ActiveNetwork.Wifi(
             ssid = wifiDetails.ssid,
-            bssid = wifiDetails.bssid,
+            // normalize to uppercase
+            bssid = wifiDetails.bssid.uppercase(),
             securityType = fetchedSecurity,
             networkId = currentNetworkId,
             network = network,

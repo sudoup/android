@@ -1,6 +1,7 @@
 package com.zaneschepke.tunnel.state
 
 import com.zaneschepke.tunnel.Tunnel
+import com.zaneschepke.tunnel.backend.dns.TunnelDnsConfig
 import com.zaneschepke.tunnel.model.BackendMode
 import com.zaneschepke.wireguardautotunnel.parser.ActiveConfig
 
@@ -16,4 +17,5 @@ data class ActiveTunnel(
     val recoveryAttempts: Int = 0,
     val pendingRecovery: Boolean = false,
     val lastRecoveryAttemptMs: Long = 0L,
+    val tunnelDnsConfig: TunnelDnsConfig? = null,
 )

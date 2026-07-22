@@ -13,7 +13,13 @@ static pthread_mutex_t g_protector_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct go_string { const char *str; long n; };
 
-extern int awgStartProxy(struct go_string ifname, struct go_string settings, struct go_string uapipath, int bypass);
+extern int awgStartProxy(
+        struct go_string ifname,
+        struct go_string settings,
+        struct go_string uapipath,
+        int bypass,
+        struct go_string dnsconfig
+);
 extern char *awgGetProxyConfig(int handle);
 extern int awgUpdateProxyTunnelPeers(int handle, struct go_string settings);
 extern void awgTurnProxyTunnelOff(int handle);
@@ -89,27 +95,39 @@ JNIEXPORT void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved) {
 }
 
 JNIEXPORT jint JNICALL
-Java_com_zaneschepke_tunnel_backend_ProxyBackend_awgStartProxy(JNIEnv *env, jclass c, jstring ifname, jstring settings, jstring uapipath, jint bypass)
+Java_com_zaneschepke_tunnel_backend_ProxyBackend_awgStartProxy(
+        JNIEnv *env, jclass c,
+        jstring ifname, jstring settings, jstring uapipath, jint bypass,
+        jstring dnsConfigJson)
 {
     const char *ifname_str = (*env)->GetStringUTFChars(env, ifname, 0);
     size_t ifname_len = (*env)->GetStringUTFLength(env, ifname);
     const char *settings_str = (*env)->GetStringUTFChars(env, settings, 0);
     size_t settings_len = (*env)->GetStringUTFLength(env, settings);
     const char *uapipath_str = (*env)->GetStringUTFChars(env, uapipath, 0);
-        size_t uapipath_len = (*env)->GetStringUTFLength(env, uapipath);
-    int ret = awgStartProxy((struct go_string){
-        .str = ifname_str,
-        .n = ifname_len
-    }, (struct go_string){
-        .str = settings_str,
-        .n = settings_len
-    }, (struct go_string){
-            .str = uapipath_str,
-            .n = uapipath_len
-        },bypass);
+    size_t uapipath_len = (*env)->GetStringUTFLength(env, uapipath);
+
+    const char *dns_str = "";
+    size_t dns_len = 0;
+    if (dnsConfigJson != NULL) {
+        dns_str = (*env)->GetStringUTFChars(env, dnsConfigJson, 0);
+        dns_len = (*env)->GetStringUTFLength(env, dnsConfigJson);
+    }
+
+    int ret = awgStartProxy(
+            (struct go_string){ .str = ifname_str, .n = ifname_len },
+            (struct go_string){ .str = settings_str, .n = settings_len },
+            (struct go_string){ .str = uapipath_str, .n = uapipath_len },
+            bypass,
+            (struct go_string){ .str = dns_str, .n = dns_len }
+    );
+
     (*env)->ReleaseStringUTFChars(env, ifname, ifname_str);
     (*env)->ReleaseStringUTFChars(env, settings, settings_str);
     (*env)->ReleaseStringUTFChars(env, uapipath, uapipath_str);
+    if (dnsConfigJson != NULL) {
+        (*env)->ReleaseStringUTFChars(env, dnsConfigJson, dns_str);
+    }
     return ret;
 }
 

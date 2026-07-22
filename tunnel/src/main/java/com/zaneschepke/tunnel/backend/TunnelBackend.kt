@@ -5,8 +5,10 @@ import com.zaneschepke.networkmonitor.StableNetworkEngine
 import com.zaneschepke.tunnel.ApplicationProvider
 import com.zaneschepke.tunnel.Tunnel
 import com.zaneschepke.tunnel.backend.dns.EndpointResolver
+import com.zaneschepke.tunnel.backend.dns.TunnelDnsConfig
 import com.zaneschepke.tunnel.event.TunnelEvent
 import com.zaneschepke.tunnel.model.BackendMode
+import com.zaneschepke.tunnel.model.BootstrapResolution
 import com.zaneschepke.tunnel.model.DnsBoostrapMode
 import com.zaneschepke.tunnel.model.KillSwitchConfig
 import com.zaneschepke.tunnel.service.ServiceManager
@@ -93,44 +95,48 @@ class TunnelBackend(
         }
     }
 
-    override suspend fun start(tunnel: Tunnel, mode: BackendMode): Result<Unit> =
-        tunnelMutex.withLock {
-            runCatching {
-                    if (_status.value.activeTunnels.containsKey(tunnel.id)) {
-                        Timber.w("Tunnel ${tunnel.id} already running")
-                        return@runCatching
-                    }
-
-                    addOrReplaceActiveTunnel(
-                        tunnel.id,
-                        ActiveTunnel(
-                            tunnel = tunnel,
-                            transportState = Tunnel.State.Starting,
-                            mode = mode,
-                        ),
-                    )
-                    applicationProvider.refreshTile(serviceManager.context)
-
-                    val scriptsEnabled = tunnel.scriptsEnabled
-
-                    if (scriptsEnabled)
-                        mode.config.`interface`.preUp?.let { runScripts(it, tunnel.id) }
-
-                    setupServicesAndProtectorForMode(tunnel, mode)
-
-                    if (hasDynamicEndpoints(mode)) {
-                        pendingResolutionJobs[tunnel.id] = startTunnelBootstrapJob(tunnel, mode)
-                    } else {
-                        val result = engine.start(tunnel.id, mode)
-                        onEngineStartResult(tunnel.id, result)
-                        if (scriptsEnabled) {
-                            mode.config.`interface`.postUp?.let { runScripts(it, tunnel.id) }
-                        }
-                        tunnelJobs[tunnel.id] = startTunnelJobs(tunnel, mode)
-                    }
+    override suspend fun start(
+        tunnel: Tunnel,
+        mode: BackendMode,
+        tunnelDnsConfig: TunnelDnsConfig?,
+    ): Result<Unit> = tunnelMutex.withLock {
+        runCatching {
+                if (_status.value.activeTunnels.containsKey(tunnel.id)) {
+                    Timber.w("Tunnel ${tunnel.id} already running")
+                    return@runCatching
                 }
-                .onFailure { cleanup(tunnel.id) }
-        }
+
+                addOrReplaceActiveTunnel(
+                    tunnel.id,
+                    ActiveTunnel(
+                        tunnel = tunnel,
+                        transportState = Tunnel.State.Starting,
+                        mode = mode,
+                        tunnelDnsConfig = tunnelDnsConfig,
+                    ),
+                )
+                applicationProvider.refreshTile(serviceManager.context)
+
+                val scriptsEnabled = tunnel.scriptsEnabled
+
+                if (scriptsEnabled) mode.config.`interface`.preUp?.let { runScripts(it, tunnel.id) }
+
+                setupServicesAndProtectorForMode(tunnel, mode, tunnelDnsConfig?.fakeDns)
+
+                if (needsBootstrap(mode, tunnelDnsConfig)) {
+                    pendingResolutionJobs[tunnel.id] =
+                        startTunnelBootstrapJob(tunnel, mode, tunnelDnsConfig)
+                } else {
+                    val result = engine.start(tunnel.id, mode, tunnelDnsConfig)
+                    onEngineStartResult(tunnel.id, result)
+                    if (scriptsEnabled) {
+                        mode.config.`interface`.postUp?.let { runScripts(it, tunnel.id) }
+                    }
+                    tunnelJobs[tunnel.id] = startTunnelJobs(tunnel, mode)
+                }
+            }
+            .onFailure { cleanup(tunnel.id) }
+    }
 
     override suspend fun bounceTunnelDevice(tunnelId: Int) = tunnelMutex.withLock {
         val active = _status.value.activeTunnels[tunnelId] ?: return@withLock
@@ -138,32 +144,37 @@ class TunnelBackend(
         val mode = active.mode ?: return@withLock
         val tunnel = active.tunnel ?: return@withLock
         val handle = byTunnelId[tunnelId] ?: return@withLock
-
+        val dns = active.tunnelDnsConfig
         engine.stop(handle, mode)
-        resolveAndStartEngine(tunnel, mode, previousActiveConfig = previousActiveConfig)
+        resolveAndStartEngine(tunnel, mode, dns, previousActiveConfig)
     }
 
     private suspend fun resolveAndStartEngine(
         tunnel: Tunnel,
         mode: BackendMode,
+        tunnelDnsConfig: TunnelDnsConfig? = null,
         previousActiveConfig: ActiveConfig? = null,
     ) {
-        val hasDynamic = hasDynamicEndpoints(mode)
+        val needsPeerResolve = hasDynamicEndpoints(mode)
+        val needsDnsResolve = tunnelDnsConfig?.needsResolve() == true
 
-        if (hasDynamic) {
+        if (needsPeerResolve || needsDnsResolve) {
             updateTunnelBootstrapState(tunnel.id, BootstrapState.ResolvingDns)
         }
 
-        val resultMap = endpointResolver.resolvePeers(mode)
+        val bootstrap =
+            if (needsPeerResolve || needsDnsResolve) {
+                endpointResolver.resolve(mode, tunnelDnsConfig)
+            } else {
+                BootstrapResolution(emptyMap(), tunnelDnsConfig)
+            }
 
         val networkHasIpv6 = stableNetworkEngine.stableState.value?.state?.hasIpv6 ?: false
         val hostMap =
-            resultMap.toHostMap(
+            bootstrap.peers.toHostMap(
                 preferIpv6 = tunnel.ipStrategy is Tunnel.IpStrategy.PreferIpv6 && networkHasIpv6
             )
         val resolvedPeers = mode.config.buildResolvedPeers(hostMap)
-
-        updateTunnelBootstrapState(tunnel.id, BootstrapState.Complete)
 
         val resolvedConfig = mode.config.copy(peers = resolvedPeers)
         val updatedMode =
@@ -173,7 +184,17 @@ class TunnelBackend(
                 is BackendMode.Proxy.KillSwitchPrimary -> mode.copy(config = resolvedConfig)
             }
 
-        val result = engine.start(tunnel.id, updatedMode)
+        val resolvedDns = bootstrap.tunnelDns
+
+        updateActiveTunnel(tunnel.id) {
+            it.copy(
+                mode = updatedMode,
+                tunnelDnsConfig = resolvedDns,
+                bootstrapState = BootstrapState.Complete,
+            )
+        }
+
+        val result = engine.start(tunnel.id, updatedMode, resolvedDns)
         onEngineStartResult(tunnel.id, result)
         if (previousActiveConfig != null) {
             emitRecoveryEventType(tunnel.id, previousActiveConfig, resolvedConfig)
@@ -229,9 +250,13 @@ class TunnelBackend(
         }
     }
 
-    private fun startTunnelBootstrapJob(tunnel: Tunnel, mode: BackendMode) = scope.launch {
+    private fun startTunnelBootstrapJob(
+        tunnel: Tunnel,
+        mode: BackendMode,
+        tunnelDnsConfig: TunnelDnsConfig? = null,
+    ) = scope.launch {
         try {
-            resolveAndStartEngine(tunnel, mode)
+            resolveAndStartEngine(tunnel, mode, tunnelDnsConfig)
             val scriptsEnabled = tunnel.scriptsEnabled
             if (scriptsEnabled) {
                 mode.config.`interface`.postUp?.let { runScripts(it, tunnel.id) }
@@ -249,7 +274,11 @@ class TunnelBackend(
         }
     }
 
-    private suspend fun setupServicesAndProtectorForMode(tunnel: Tunnel, mode: BackendMode) {
+    private suspend fun setupServicesAndProtectorForMode(
+        tunnel: Tunnel,
+        mode: BackendMode,
+        fakeDns: String?,
+    ) {
         when (mode) {
             is BackendMode.Proxy.KillSwitchPrimary -> {
                 val service = serviceManager.ensureVpnReady()
@@ -260,7 +289,7 @@ class TunnelBackend(
             }
             is BackendMode.Vpn -> {
                 val service = serviceManager.ensureVpnReady()
-                service.createTunInterface(tunnel, mode.config)
+                service.createTunInterface(tunnel, mode.config, fakeDns)
             }
         }
     }
@@ -427,6 +456,9 @@ class TunnelBackend(
         }
     }
 
+    private fun needsBootstrap(mode: BackendMode, cfg: TunnelDnsConfig?): Boolean =
+        hasDynamicEndpoints(mode) || (cfg?.needsResolve() == true)
+
     fun updateTunnelBootstrapState(id: Int, newState: BootstrapState) {
         updateActiveTunnel(id) { tunnel -> tunnel.copy(bootstrapState = newState) }
     }
@@ -467,8 +499,8 @@ class TunnelBackend(
             val handle =
                 byTunnelId[tunnelId]
                     ?: run {
-                        Timber.w("Failed to find tunnel handle, skipping stats")
-                        continue
+                        Timber.w("Failed to find tunnel handle, stopping stats job")
+                        return@launch
                     }
             val activeConfig = engine.getActiveConfig(handle, mode)
             updateActiveTunnel(tunnelId) { it.copy(activeConfig = activeConfig) }
@@ -603,10 +635,10 @@ class TunnelBackend(
                 continue
             }
 
-            val results = endpointResolver.resolvePeers(mode)
-            if (results.isEmpty()) continue
+            val resolved = endpointResolver.resolve(mode)
+            if (resolved.peers.isEmpty()) continue
 
-            val mismatches = activeConfig.findEndpointMismatches(results, true)
+            val mismatches = activeConfig.findEndpointMismatches(resolved.peers, true)
 
             if (mismatches.isNotEmpty()) {
                 Timber.i(

@@ -24,8 +24,8 @@ import com.zaneschepke.wireguardautotunnel.util.BssidUtils.normalizeBssid
 import com.zaneschepke.wireguardautotunnel.util.StringValue
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.mapNotNull
-import org.orbitmvi.orbit.ContainerHost
-import org.orbitmvi.orbit.viewmodel.container
+import org.orbitmvi.orbit.OrbitContainerHost
+import org.orbitmvi.orbit.viewmodel.orbitContainer
 import rikka.shizuku.Shizuku
 
 class AutoTunnelViewModel(
@@ -37,14 +37,16 @@ class AutoTunnelViewModel(
     private val autoTunnelCoordinator: AutoTunnelCoordinator,
     private val tunnelsRepository: TunnelRepository,
     private val autoTunnelStateHolder: AutoTunnelStateHolder,
-) : ContainerHost<AutoTunnelUiState, AutoTunnelScreenSideEffect>, ViewModel() {
+) :
+    OrbitContainerHost<AutoTunnelUiState, AutoTunnelUiState, AutoTunnelScreenSideEffect>,
+    ViewModel() {
 
     init {
         networkMonitor.checkPermissionsAndUpdateState()
     }
 
     override val container =
-        container<AutoTunnelUiState, AutoTunnelScreenSideEffect>(
+        orbitContainer<AutoTunnelUiState, AutoTunnelScreenSideEffect>(
             AutoTunnelUiState(),
             buildSettings = { repeatOnSubscribedStopTimeout = 5000L },
         ) {

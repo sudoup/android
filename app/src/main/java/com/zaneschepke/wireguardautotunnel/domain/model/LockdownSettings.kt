@@ -10,7 +10,7 @@ data class LockdownSettings(
 ) {
     fun toKillSwitchConfig(): KillSwitchConfig {
         return KillSwitchConfig(
-            allowedIps = if (bypassLan) TunnelConfig.LAN_BYPASS_ALLOWED_IPS else emptySet(),
+            allowedIps = if (bypassLan) AllowedIpsCalculator.LAN_BYPASS_BASE else emptySet(),
             metered = metered,
             dualStack = dualStack,
         )

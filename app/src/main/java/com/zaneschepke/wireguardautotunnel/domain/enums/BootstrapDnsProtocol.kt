@@ -3,7 +3,7 @@ package com.zaneschepke.wireguardautotunnel.domain.enums
 import android.content.Context
 import com.zaneschepke.wireguardautotunnel.R
 
-enum class DnsProtocol(val value: Int) {
+enum class BootstrapDnsProtocol(val value: Int) {
     SYSTEM(0),
     DOH(1),
     DOT(2),
@@ -19,6 +19,7 @@ enum class DnsProtocol(val value: Int) {
     }
 
     companion object {
-        fun fromValue(value: Int): DnsProtocol = entries.find { it.value == value } ?: SYSTEM
+        fun fromValue(value: Int): BootstrapDnsProtocol =
+            entries.find { it.value == value } ?: SYSTEM
     }
 }

@@ -24,9 +24,9 @@ import com.zaneschepke.wireguardautotunnel.R
 
 @Composable
 fun SheetButtonWithDivider(
-    showDivider: Boolean = true,
-    modifier: Modifier = Modifier,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    showDivider: Boolean = true,
 ) {
     Row(
         modifier = Modifier.height(IntrinsicSize.Min),

@@ -34,7 +34,7 @@ import com.zaneschepke.wireguardautotunnel.data.entity.TunnelConfig
             DnsSettings::class,
             LockdownSettings::class,
         ],
-    version = 34,
+    version = 35,
     autoMigrations =
         [
             AutoMigration(from = 1, to = 2),
@@ -67,6 +67,7 @@ import com.zaneschepke.wireguardautotunnel.data.entity.TunnelConfig
             AutoMigration(from = 31, to = 32),
             AutoMigration(from = 32, to = 33),
             AutoMigration(from = 33, to = 34, spec = SeamlessRecoveryMigration::class),
+            AutoMigration(from = 34, to = 35, spec = TunnelDnsMigration::class),
         ],
     exportSchema = true,
 )
@@ -215,3 +216,22 @@ class SingleConfigMigration : AutoMigrationSpec {
     DeleteColumn(tableName = "tunnel_config", columnName = "dynamic_dns"),
 )
 class SeamlessRecoveryMigration : AutoMigrationSpec
+
+@RenameColumn.Entries(
+    RenameColumn(
+        tableName = "dns_settings",
+        fromColumnName = "dns_protocol",
+        toColumnName = "dns_bootstrap_protocol",
+    ),
+    RenameColumn(
+        tableName = "dns_settings",
+        fromColumnName = "dns_endpoint",
+        toColumnName = "dns_bootstrap_endpoint",
+    ),
+    RenameColumn(
+        tableName = "dns_settings",
+        fromColumnName = "global_tunnel_dns_enabled",
+        toColumnName = "global_tunnel_config_dns_enabled",
+    ),
+)
+class TunnelDnsMigration : AutoMigrationSpec

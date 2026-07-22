@@ -14,6 +14,7 @@ import (
 	"github.com/amnezia-vpn/amneziawg-go/ipc"
 	"github.com/amnezia-vpn/amneziawg-go/tun/netstack"
 	wireproxyawg "github.com/artem-russkikh/wireproxy-awg"
+	"github.com/wgtunnel/android/dns"
 	"github.com/wgtunnel/android/shared"
 )
 
@@ -32,7 +33,7 @@ func init() {
 }
 
 //export awgStartProxy
-func awgStartProxy(interfaceName string, config string, uapiPath string, bypass int32) int32 {
+func awgStartProxy(interfaceName string, config string, uapiPath string, bypass int32, dnsConfigJSON string) int32 {
 	conf, err := wireproxyawg.ParseConfigString(config)
 	if err != nil {
 		shared.LogError(tag, "Invalid config file", err)
@@ -63,6 +64,12 @@ func awgStartProxy(interfaceName string, config string, uapiPath string, bypass 
 		return -1
 	}
 
+	deviceTUN, err := dns.MaybeWrapTUN(tun, dnsConfigJSON)
+	if err != nil {
+		shared.LogError(tag, "DNS wrap: %v", err)
+		return -1
+	}
+
 	name, err := tun.Name()
 	if err != nil {
 		shared.LogError(tag, "Failed to get TUN name: %v", err)
@@ -90,7 +97,7 @@ func awgStartProxy(interfaceName string, config string, uapiPath string, bypass 
 	}
 
 	dev := device.NewDevice(
-		tun,
+		deviceTUN,
 		bind,
 		shared.NewLogger("Tun/"+interfaceName),
 		statusCB,

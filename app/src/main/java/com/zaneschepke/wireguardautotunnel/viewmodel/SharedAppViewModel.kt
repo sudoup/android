@@ -48,8 +48,8 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
-import org.orbitmvi.orbit.ContainerHost
-import org.orbitmvi.orbit.viewmodel.container
+import org.orbitmvi.orbit.OrbitContainerHost
+import org.orbitmvi.orbit.viewmodel.orbitContainer
 import timber.log.Timber
 import xyz.teamgravity.pin_lock_compose.PinManager
 
@@ -66,7 +66,7 @@ class SharedAppViewModel(
     private val httpClient: HttpClient,
     private val fileUtils: FileUtils,
     private val networkUtils: NetworkUtils,
-) : ContainerHost<GlobalAppUiState, LocalSideEffect>, ViewModel() {
+) : OrbitContainerHost<GlobalAppUiState, GlobalAppUiState, LocalSideEffect>, ViewModel() {
 
     val globalSideEffect = globalEffectRepository.flow
 
@@ -94,7 +94,7 @@ class SharedAppViewModel(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), TunnelsUiState())
 
     override val container =
-        container<GlobalAppUiState, LocalSideEffect>(
+        orbitContainer<GlobalAppUiState, LocalSideEffect>(
             GlobalAppUiState(),
             buildSettings = { repeatOnSubscribedStopTimeout = 5_000L },
         ) {

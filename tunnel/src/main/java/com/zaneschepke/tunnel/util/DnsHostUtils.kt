@@ -1,6 +1,7 @@
 package com.zaneschepke.tunnel.util
 
 import inet.ipaddr.IPAddressString
+import inet.ipaddr.ipv6.IPv6Address
 import java.net.URI
 
 object DnsHostUtils {
@@ -75,5 +76,39 @@ object DnsHostUtils {
     fun needsResolution(upstream: String): Boolean {
         val host = extractHost(upstream)
         return host.isNotBlank() && !isIpAddress(host)
+    }
+
+    /**
+     * Decodes an IP4P address from natmap format into a real IPv4 and port. Returns null if the
+     * address is not IP4P.
+     */
+    fun decodeIp4p(raw: String): Pair<String, Int>? {
+        val clean = raw.removePrefix("[").removeSuffix("]")
+        val ipv6 = IPAddressString(clean).address as? IPv6Address ?: return null
+
+        val bytes = ipv6.bytes
+        if (bytes.size != 16) return null
+
+        // Must start with 2001:
+        if (bytes[0] != 0x20.toByte() || bytes[1] != 0x01.toByte()) return null
+
+        // IP4P has zeros in bytes 2 to 9
+        for (i in 2..9) {
+            if (bytes[i] != 0.toByte()) return null
+        }
+
+        // bytes 10 to 11 for port
+        val port = ((bytes[10].toInt() and 0xFF) shl 8) or (bytes[11].toInt() and 0xFF)
+        if (port !in 1..65535) return null
+
+        // bytes 12 to 15 for IPv4
+        val ipv4 = buildString {
+            append(bytes[12].toInt() and 0xFF).append('.')
+            append(bytes[13].toInt() and 0xFF).append('.')
+            append(bytes[14].toInt() and 0xFF).append('.')
+            append(bytes[15].toInt() and 0xFF)
+        }
+
+        return ipv4 to port
     }
 }

@@ -5,7 +5,13 @@ import timber.log.Timber
 
 @Keep
 internal object ProxyBackend {
-    external fun awgStartProxy(ifName: String, config: String, uapiPath: String, bypass: Int): Int
+    external fun awgStartProxy(
+        ifName: String,
+        config: String,
+        uapiPath: String,
+        bypass: Int,
+        dnsConfigJson: String?,
+    ): Int
 
     external fun awgUpdateProxyTunnelPeers(handle: Int, settings: String): Int
 

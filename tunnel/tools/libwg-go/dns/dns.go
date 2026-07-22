@@ -9,14 +9,9 @@ extern void NotifyDnsResult(int64_t id, const char* result);
 */
 import "C"
 import (
-	"bytes"
 	"context"
-	"crypto/tls"
-	"errors"
 	"fmt"
-	"io"
 	"net"
-	"net/http"
 	"net/netip"
 	"net/url"
 	"strings"
@@ -26,21 +21,98 @@ import (
 
 	"github.com/miekg/dns"
 	"github.com/wgtunnel/android/shared"
+	coredns "github.com/wgtunnel/core/engine/dns"
+	"github.com/wgtunnel/core/engine/dns/transport/doh"
+	"github.com/wgtunnel/core/engine/dns/transport/dot"
+	"github.com/wgtunnel/core/engine/dns/transport/plain"
 	"golang.org/x/sys/unix"
 )
 
-type Resolved struct {
-	V4 []netip.Addr
-	V6 []netip.Addr
+// buildBootstrapEngine creates a short-lived engine for one bootstrap resolution
+func buildBootstrapEngine(
+	protocol, resolvedUpstream, originalUpstream string,
+	bypass bool,
+) (*coredns.Engine, error) {
+
+	var t coredns.Transport
+	var err error
+
+	switch strings.ToLower(protocol) {
+	case "doh":
+		t, err = newDoHTransport(originalUpstream, resolvedUpstream, bypass)
+	case "dot":
+		t, err = newDoTTransport(originalUpstream, resolvedUpstream, bypass)
+	default: // plain / udp / tcp
+		t, err = newPlainTransport(resolvedUpstream, bypass)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	engine := coredns.NewEngine()
+	engine.RegisterTransport("bootstrap", t)
+
+	router := coredns.NewSimpleRouter(engine, "bootstrap")
+	engine.SetRouter(router)
+
+	return engine, nil
 }
 
-type ResolverOptions struct {
-	UpstreamURL string
-	Timeout     time.Duration
+func newPlainTransport(resolved string, bypass bool) (coredns.Transport, error) {
+	servers := splitUpstreams(resolved)
+	if len(servers) == 0 {
+		return nil, fmt.Errorf("plain bootstrap: no servers")
+	}
+
+	for i, s := range servers {
+		if _, _, err := net.SplitHostPort(s); err != nil {
+			servers[i] = net.JoinHostPort(s, "53")
+		}
+	}
+	tr := plain.New(servers, "udp")
+	tr.Dialer = GetDialer(bypass)
+	return tr, nil
 }
 
-type Transport interface {
-	Query(ctx context.Context, msg *dns.Msg) (*dns.Msg, error)
+func newDoTTransport(original, resolved string, bypass bool) (coredns.Transport, error) {
+	servers := splitUpstreams(resolved)
+	if len(servers) == 0 {
+		return nil, fmt.Errorf("dot bootstrap: no servers")
+	}
+	sni, defPort, err := net.SplitHostPort(original)
+	if err != nil {
+		sni, defPort = original, "853"
+	}
+	for i, s := range servers {
+		if _, _, err := net.SplitHostPort(s); err != nil {
+			servers[i] = net.JoinHostPort(s, defPort)
+		}
+	}
+	tr := dot.New(servers, sni)
+	tr.Dialer = GetDialer(bypass)
+	return tr, nil
+}
+
+func newDoHTransport(original, resolved string, bypass bool) (coredns.Transport, error) {
+	urls := splitUpstreams(resolved)
+	if len(urls) == 0 {
+		return nil, fmt.Errorf("doh bootstrap: no urls")
+	}
+	orig := original
+	if !strings.HasPrefix(orig, "https://") && !strings.HasPrefix(orig, "http://") {
+		orig = "https://" + orig
+	}
+	u, err := url.Parse(orig)
+	if err != nil {
+		return nil, err
+	}
+	sni := u.Hostname()
+
+	tr := doh.New(urls, sni)
+	tr.Timeout = 5 * time.Second
+	d := GetDialer(bypass)
+	tr.DialContext = d.DialContext
+	return tr, nil
 }
 
 //export StartResolveBootstrap
@@ -58,28 +130,31 @@ func StartResolveBootstrap(
 	original := C.GoString(originalUpstream)
 	bp := bypass == 1
 
-	shared.LogDebug("DNS", "StartResolveBootstrap called: id=%d host=%s protocol=%s resolved=%s bypass=%t",
-		id, h, p, resolved, bp)
+	shared.LogDebug("DNS", "StartResolveBootstrap id=%d host=%s protocol=%s", id, h, p)
 
 	go func(reqID int64, h, p, resolved, original string, bypass bool) {
 		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 		defer cancel()
 
-		shared.LogDebug("DNS", "Goroutine started for DNS bootstrap id=%d host=%s", reqID, h)
-
-		v4, v6, err := Resolve(ctx, h, p, resolved, original, bypass)
-
-		var resultStr string
+		engine, err := buildBootstrapEngine(p, resolved, original, bypass)
 		if err != nil {
-			shared.LogError("DNS", "ResolveBootstrap failed id=%d host=%s: %v", reqID, h, err)
-			resultStr = "ERR|" + err.Error()
-		} else {
-			resultStr = fmt.Sprintf("v4=%s;v6=%s",
-				strings.Join(toStringSlice(v4), ","),
-				strings.Join(toStringSlice(v6), ","),
-			)
-			shared.LogDebug("DNS", "ResolveBootstrap success id=%d host=%s -> %s", reqID, h, resultStr)
+			notifyError(reqID, err)
+			return
 		}
+		defer engine.Close()
+
+		// Resolve A + AAAA
+		v4, v6, err := resolveWithEngine(ctx, engine, h)
+		if err != nil {
+			notifyError(reqID, err)
+			return
+		}
+
+		resultStr := fmt.Sprintf("v4=%s;v6=%s",
+			strings.Join(toStringSlice(v4), ","),
+			strings.Join(toStringSlice(v6), ","),
+		)
+		shared.LogDebug("DNS", "ResolveBootstrap success id=%d → %s", reqID, resultStr)
 
 		cResult := C.CString(resultStr)
 		C.NotifyDnsResult(C.int64_t(reqID), cResult)
@@ -87,257 +162,34 @@ func StartResolveBootstrap(
 	}(int64(id), h, p, resolved, original, bp)
 }
 
-func toStringSlice(addrs []netip.Addr) []string {
-	out := make([]string, len(addrs))
-	for i, a := range addrs {
-		out[i] = a.String()
+func resolveWithEngine(ctx context.Context, engine *coredns.Engine, host string) (v4, v6 []netip.Addr, err error) {
+	// A
+	msgA := new(dns.Msg)
+	msgA.SetQuestion(dns.Fqdn(host), dns.TypeA)
+	msgA.SetEdns0(4096, true)
+
+	respA, errA := engine.Exchange(ctx, msgA)
+	if errA == nil {
+		v4 = parseAnswers(respA.Msg, dns.TypeA)
 	}
-	return out
+
+	// AAAA
+	msgAAAA := new(dns.Msg)
+	msgAAAA.SetQuestion(dns.Fqdn(host), dns.TypeAAAA)
+	msgAAAA.SetEdns0(4096, true)
+
+	respAAAA, errAAAA := engine.Exchange(ctx, msgAAAA)
+	if errAAAA == nil {
+		v6 = parseAnswers(respAAAA.Msg, dns.TypeAAAA)
+	}
+
+	if len(v4) == 0 && len(v6) == 0 {
+		return nil, nil, fmt.Errorf("no addresses: A=%v AAAA=%v", errA, errAAAA)
+	}
+	return v4, v6, nil
 }
 
-type DoTTransport struct {
-	Client  *dns.Client
-	Servers []string
-}
-
-type DoHTransport struct {
-	Client   *http.Client
-	URL      string
-	Servers  []string // IPv4 first, IPv6 fallback
-	Hostname string   // for SNI and Host header
-}
-
-type PlainTransport struct {
-	Client  *dns.Client
-	Servers []string
-}
-
-func resolveHost(
-	ctx context.Context,
-	t Transport,
-	host string,
-) (v4, v6 []netip.Addr, err error) {
-	a4, e4 := resolveQ(ctx, t, host, dns.TypeA)
-	if e4 == nil {
-		v4 = a4
-	}
-	a6, e6 := resolveQ(ctx, t, host, dns.TypeAAAA)
-	if e6 == nil {
-		v6 = a6
-	}
-
-	if len(v4) > 0 || len(v6) > 0 {
-		return v4, v6, nil
-	}
-	return nil, nil, errors.Join(e4, e6)
-}
-
-func resolveQ(
-	ctx context.Context,
-	t Transport,
-	host string,
-	qtype uint16,
-) ([]netip.Addr, error) {
-	req := &dns.Msg{}
-	req.SetQuestion(dns.Fqdn(host), qtype)
-	req.SetEdns0(4096, true)
-
-	res, err := t.Query(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	if res == nil {
-		return nil, fmt.Errorf("nil DNS response")
-	}
-	if res.Rcode != dns.RcodeSuccess {
-		return nil, fmt.Errorf("rcode %d", res.Rcode)
-	}
-
-	addrs := parseDNSAnswers(res, qtype)
-	if len(addrs) == 0 {
-		return nil, fmt.Errorf("no answers for qtype %d", qtype)
-	}
-	return addrs, nil
-}
-
-func parseUpstream(upstreamURL string) (network, address string, err error) {
-	shared.LogDebug("DNS", "Parsing upstream URL: %s", upstreamURL)
-	u := upstreamURL
-	if !strings.Contains(u, "://") {
-		u = normalizeHostPort(u)
-		u = "udp://" + u
-	}
-	parsed, err := url.Parse(u)
-	if err != nil {
-		shared.LogError("DNS", "parseUpstream failed for %q: %v", upstreamURL, err)
-		return "", "", fmt.Errorf("invalid upstream URL %q: %w", upstreamURL, err)
-	}
-
-	switch parsed.Scheme {
-	case "udp", "":
-		network = "udp"
-	case "tcp":
-		network = "tcp"
-	default:
-		err = fmt.Errorf("unsupported upstream scheme %q (only udp:// and tcp:// supported for plain DNS)", parsed.Scheme)
-		shared.LogError("DNS", "%v", err)
-		return "", "", err
-	}
-
-	host := parsed.Hostname()
-	port := parsed.Port()
-	if port == "" {
-		port = "53"
-	}
-	address = net.JoinHostPort(host, port)
-	shared.LogDebug("DNS", "Parsed upstream -> network=%s address=%s", network, address)
-	return network, address, nil
-}
-
-func newUnderlyingResolver(bypass bool, underlying string) *net.Resolver {
-	if !bypass {
-		return &net.Resolver{PreferGo: false}
-	}
-
-	rawServers := strings.Split(underlying, ",")
-	var servers []string
-
-	for _, s := range rawServers {
-		s = strings.TrimSpace(s)
-		if s == "" {
-			continue
-		}
-
-		if !strings.Contains(s, ":") {
-			s = net.JoinHostPort(s, "53")
-		}
-		servers = append(servers, s)
-	}
-
-	if len(servers) == 0 {
-		servers = []string{"1.1.1.1:53"}
-	}
-
-	return &net.Resolver{
-		PreferGo: true,
-		Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
-			for _, server := range servers {
-				conn, err := GetDialer(true).DialContext(ctx, network, server)
-				if err == nil {
-					shared.LogDebug("DNS", "Using underlying bootstrap resolver: %s", server)
-					return conn, nil
-				}
-				shared.LogDebug("DNS", "Bootstrap resolver failed for %s: %v", server, err)
-			}
-			return nil, fmt.Errorf("all underlying DNS servers failed")
-		},
-	}
-}
-
-func resolveServerAddrs(
-	ctx context.Context,
-	address string,
-	bypass bool,
-	defaultPort string,
-	underlying string,
-) ([]string, string, error) {
-	address = normalizeHostPort(address)
-
-	host, port, err := net.SplitHostPort(address)
-	if err != nil {
-		host = address
-		port = defaultPort
-	}
-
-	if net.ParseIP(host) != nil {
-		return []string{net.JoinHostPort(host, port)}, host, nil
-	}
-
-	resolver := newUnderlyingResolver(bypass, underlying)
-	ips, err := resolver.LookupIP(ctx, "ip", host)
-	if err != nil {
-		shared.LogError("DNS", "Failed to resolve upstream %s (bypass=%t): %v", host, bypass, err)
-		return nil, "", err
-	}
-
-	var v4, v6 []string
-	for _, ip := range ips {
-		addr := net.JoinHostPort(ip.String(), port)
-		if ip.To4() != nil {
-			v4 = append(v4, addr)
-		} else {
-			v6 = append(v6, addr)
-		}
-	}
-
-	return append(v4, v6...), host, nil
-}
-
-func (t PlainTransport) Query(ctx context.Context, msg *dns.Msg) (*dns.Msg, error) {
-	for _, server := range t.Servers {
-		m, _, err := t.Client.ExchangeContext(ctx, msg, server)
-		if err == nil && m != nil && m.Rcode == dns.RcodeSuccess {
-			return m, nil
-		}
-		if err != nil {
-			shared.LogDebug("DNS", "Plain DNS query to %s failed: %v", server, err)
-		}
-	}
-	return nil, fmt.Errorf("all DNS servers failed")
-}
-
-func (t DoTTransport) Query(ctx context.Context, msg *dns.Msg) (*dns.Msg, error) {
-	for _, server := range t.Servers {
-		m, _, err := t.Client.ExchangeContext(ctx, msg, server)
-		if err == nil && m != nil && m.Rcode == dns.RcodeSuccess {
-			return m, nil
-		}
-		if err != nil {
-			shared.LogDebug("DNS", "DoT Exchange to %s failed: %v", server, err)
-		}
-	}
-	return nil, fmt.Errorf("all DoT servers failed")
-}
-
-func (t DoHTransport) Query(ctx context.Context, msg *dns.Msg) (*dns.Msg, error) {
-	wire, err := msg.Pack()
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequestWithContext(
-		ctx, "POST", t.URL, bytes.NewReader(wire),
-	)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/dns-message")
-	req.Header.Set("Accept", "application/dns-message")
-	req.Host = t.Hostname // important for virtual hosting and cert validation
-
-	resp, err := t.Client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("doh status %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var res dns.Msg
-	if err := res.Unpack(body); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func parseDNSAnswers(msg *dns.Msg, qtype uint16) []netip.Addr {
+func parseAnswers(msg *dns.Msg, qtype uint16) []netip.Addr {
 	var out []netip.Addr
 	for _, ans := range msg.Answer {
 		switch qtype {
@@ -358,147 +210,30 @@ func parseDNSAnswers(msg *dns.Msg, qtype uint16) []netip.Addr {
 	return out
 }
 
-func Resolve(
-	ctx context.Context,
-	host, protocol, resolvedUpstream, originalUpstream string,
-	bypass bool,
-) ([]netip.Addr, []netip.Addr, error) {
-
-	t, err := buildTransport(protocol, resolvedUpstream, originalUpstream, bypass)
-	if err != nil {
-		return nil, nil, err
-	}
-	return resolveHost(ctx, t, host)
+func notifyError(id int64, err error) {
+	shared.LogError("DNS", "ResolveBootstrap failed id=%d: %v", id, err)
+	cResult := C.CString("ERR|" + err.Error())
+	C.NotifyDnsResult(C.int64_t(id), cResult)
+	C.free(unsafe.Pointer(cResult))
 }
 
-func buildTransport(
-	protocol, resolvedUpstream, originalUpstream string,
-	bypass bool,
-) (Transport, error) {
-
-	switch protocol {
-	case "doh":
-		shared.LogDebug("DNS", "Building DoH transport: original=%s resolved=%s bypass=%t", originalUpstream, resolvedUpstream, bypass)
-		// Parse original for SNI
-		origURL, err := url.Parse(originalUpstream)
-		if err != nil {
-			return nil, fmt.Errorf("invalid original DoH upstream: %w", err)
+func splitUpstreams(s string) []string {
+	var out []string
+	for _, line := range strings.Split(s, ",") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			out = append(out, line)
 		}
-
-		originalHost := origURL.Hostname()
-
-		// Parse resolved to get the IP
-		resolvedURL, _ := url.Parse(resolvedUpstream)
-		dialHost := resolvedURL.Hostname()
-		if dialHost == "" {
-			dialHost = originalHost // fallback
-		}
-
-		port := origURL.Port()
-		if port == "" {
-			port = "443"
-		}
-
-		dialer := GetDialer(bypass)
-
-		transport := &http.Transport{
-			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-				return dialer.DialContext(ctx, network, net.JoinHostPort(dialHost, port))
-			},
-			TLSClientConfig: &tls.Config{
-				ServerName: originalHost, // Use original hostname for certificate validation
-			},
-		}
-
-		finalURL := origURL.String()
-		if !strings.HasPrefix(finalURL, "https://") {
-			finalURL = "https://" + finalURL
-		}
-
-		return DoHTransport{
-			Client:   &http.Client{Timeout: 5 * time.Second, Transport: transport},
-			URL:      finalURL,
-			Hostname: originalHost,
-		}, nil
-
-	case "dot":
-		shared.LogDebug("DNS", "Building DoT transport: original=%s resolved=%s bypass=%t", originalUpstream, resolvedUpstream, bypass)
-		// Get SNI from original
-		origHost, origPort, err := net.SplitHostPort(originalUpstream)
-		if err != nil {
-			origHost = originalUpstream
-			origPort = "853"
-		}
-
-		// Get connection target from resolved
-		resolvedHost, resolvedPort, _ := net.SplitHostPort(resolvedUpstream)
-		if resolvedHost == "" {
-			resolvedHost = resolvedUpstream
-			resolvedPort = origPort
-		}
-
-		client := &dns.Client{
-			Net:     "tcp-tls",
-			Dialer:  GetDialer(bypass),
-			Timeout: 6 * time.Second,
-			TLSConfig: &tls.Config{
-				ServerName: origHost,
-				MinVersion: tls.VersionTLS12,
-			},
-		}
-
-		return DoTTransport{
-			Client:  client,
-			Servers: []string{net.JoinHostPort(resolvedHost, resolvedPort)},
-		}, nil
-
-	default: // plain
-		shared.LogDebug("DNS", "Building plain DNS transport: resolved=%s bypass=%t", resolvedUpstream, bypass)
-		host, port, _ := net.SplitHostPort(resolvedUpstream)
-		if host == "" {
-			host = resolvedUpstream
-			port = "53"
-		}
-
-		client := &dns.Client{
-			Net:     "udp",
-			Dialer:  GetDialer(bypass),
-			Timeout: 5 * time.Second,
-		}
-		return PlainTransport{
-			Client:  client,
-			Servers: []string{net.JoinHostPort(host, port)},
-		}, nil
 	}
+	return out
 }
 
-// normalizeHostPort makes sure raw IPv6 is correctly bracketed.
-func normalizeHostPort(s string) string {
-	s = strings.TrimSpace(s)
-	if s == "" || strings.Contains(s, "://") || strings.Contains(s, "]") {
-		return s
+func toStringSlice(addrs []netip.Addr) []string {
+	out := make([]string, len(addrs))
+	for i, a := range addrs {
+		out[i] = a.String()
 	}
-	if strings.Count(s, ":") < 2 {
-		return s // definitely not IPv6
-	}
-
-	lastColon := strings.LastIndexByte(s, ':')
-	potentialHost := s[:lastColon]
-	potentialPort := s[lastColon+1:]
-
-	if ip := net.ParseIP(potentialHost); ip != nil && ip.To4() == nil {
-		if potentialPort != "" {
-			return "[" + potentialHost + "]:" + potentialPort
-		}
-		return "[" + potentialHost + "]"
-	}
-
-	// fallback with no port
-	if ip := net.ParseIP(s); ip != nil && ip.To4() == nil {
-		return "[" + s + "]"
-	}
-
-	return s
+	return out
 }
 
 func GetDialer(bypass bool) *net.Dialer {

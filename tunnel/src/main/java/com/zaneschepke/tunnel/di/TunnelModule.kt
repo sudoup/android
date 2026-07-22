@@ -6,6 +6,7 @@ import com.zaneschepke.tunnel.backend.NativeTunnelCallback
 import com.zaneschepke.tunnel.backend.TunnelBackend
 import com.zaneschepke.tunnel.backend.TunnelEngine
 import com.zaneschepke.tunnel.backend.WireGuardTunnelEngine
+import com.zaneschepke.tunnel.backend.dns.DnsUnderlayNetworkBridge
 import com.zaneschepke.tunnel.service.ServiceManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +17,7 @@ import org.koin.dsl.binds
 import org.koin.dsl.module
 
 val tunnelModule = module {
+    single(createdAtStart = true) { DnsUnderlayNetworkBridge(get()) }
     single(createdAtStart = true) { TunnelLibraryInitializer.ensureLoaded(androidContext()) }
 
     single(named(CoroutineScopes.IO_SCOPE)) { CoroutineScope(SupervisorJob() + Dispatchers.IO) }

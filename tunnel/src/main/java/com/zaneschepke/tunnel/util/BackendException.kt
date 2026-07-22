@@ -11,4 +11,6 @@ sealed class BackendException : Exception() {
     class HttpPortUnavailable(override val message: String, val port: Int) : BackendException()
 
     class ListenPortUnavailable(override val message: String, val port: Int) : BackendException()
+
+    class ConfigMissingDNS(override val message: String) : BackendException()
 }

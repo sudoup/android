@@ -6,7 +6,8 @@ require (
 	github.com/amnezia-vpn/amneziawg-go v0.2.16
 	github.com/artem-russkikh/wireproxy-awg v1.0.12
 	github.com/miekg/dns v1.1.69
-	golang.org/x/sys v0.38.0
+	github.com/wgtunnel/core v0.0.0-20260720035558-79a99cbf3e2b
+	golang.org/x/sys v0.39.0
 )
 
 require (
@@ -14,12 +15,12 @@ require (
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/things-go/go-socks5 v0.1.0 // indirect
-	golang.org/x/crypto v0.45.0 // indirect
-	golang.org/x/mod v0.30.0 // indirect
-	golang.org/x/net v0.47.0 // indirect
-	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/crypto v0.46.0 // indirect
+	golang.org/x/mod v0.31.0 // indirect
+	golang.org/x/net v0.48.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
-	golang.org/x/tools v0.39.0 // indirect
+	golang.org/x/tools v0.40.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	gvisor.dev/gvisor v0.0.0-20250503011706-39ed1f5ac29c // indirect
 )
@@ -34,3 +35,5 @@ replace github.com/things-go/go-socks5 => github.com/wgtunnel/go-socks5 v0.0.0-2
 //replace github.com/amnezia-vpn/amneziawg-go => ../../../../amneziawg-go
 
 //replace github.com/artem-russkikh/wireproxy-awg => ../../../../wireproxy-awg
+
+//replace github.com/wgtunnel/core => ../../../../core

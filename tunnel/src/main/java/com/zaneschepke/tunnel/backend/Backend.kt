@@ -2,6 +2,7 @@ package com.zaneschepke.tunnel.backend
 
 import com.zaneschepke.tunnel.ApplicationProvider
 import com.zaneschepke.tunnel.Tunnel
+import com.zaneschepke.tunnel.backend.dns.TunnelDnsConfig
 import com.zaneschepke.tunnel.event.TunnelEvent
 import com.zaneschepke.tunnel.model.BackendMode
 import com.zaneschepke.tunnel.model.DnsBoostrapMode
@@ -14,7 +15,11 @@ interface Backend {
 
     val applicationProvider: ApplicationProvider
 
-    suspend fun start(tunnel: Tunnel, mode: BackendMode): Result<Unit>
+    suspend fun start(
+        tunnel: Tunnel,
+        mode: BackendMode,
+        tunnelDnsConfig: TunnelDnsConfig? = null,
+    ): Result<Unit>
 
     fun setAlwaysOnCallback(alwaysOnCallback: VpnService.AlwaysOnCallback)
 

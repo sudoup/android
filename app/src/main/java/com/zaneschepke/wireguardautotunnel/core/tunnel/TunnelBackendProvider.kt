@@ -2,6 +2,7 @@ package com.zaneschepke.wireguardautotunnel.core.tunnel
 
 import com.zaneschepke.tunnel.Tunnel
 import com.zaneschepke.tunnel.backend.Backend
+import com.zaneschepke.tunnel.backend.dns.TunnelDnsConfig
 import com.zaneschepke.tunnel.model.BackendMode
 import com.zaneschepke.tunnel.state.BackendStatus
 import com.zaneschepke.wireguardautotunnel.domain.model.LockdownSettings
@@ -30,8 +31,12 @@ class TunnelBackendProvider(
 
     override val events = backend.events
 
-    override suspend fun startTunnel(tunnel: Tunnel, mode: BackendMode): Result<Unit> {
-        return backend.start(tunnel = tunnel, mode = mode)
+    override suspend fun startTunnel(
+        tunnel: Tunnel,
+        mode: BackendMode,
+        tunnelDnsConfig: TunnelDnsConfig?,
+    ): Result<Unit> {
+        return backend.start(tunnel = tunnel, mode = mode, tunnelDnsConfig)
     }
 
     override suspend fun stopTunnel(tunnelId: Int): Result<Unit> {

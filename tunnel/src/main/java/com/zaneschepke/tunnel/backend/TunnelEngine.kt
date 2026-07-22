@@ -1,5 +1,6 @@
 package com.zaneschepke.tunnel.backend
 
+import com.zaneschepke.tunnel.backend.dns.TunnelDnsConfig
 import com.zaneschepke.tunnel.model.BackendMode
 import com.zaneschepke.tunnel.state.EngineStartResult
 import com.zaneschepke.wireguardautotunnel.parser.ActiveConfig
@@ -7,7 +8,11 @@ import com.zaneschepke.wireguardautotunnel.parser.PeerSection
 
 internal interface TunnelEngine {
 
-    suspend fun start(tunnelId: Int, mode: BackendMode): EngineStartResult
+    suspend fun start(
+        tunnelId: Int,
+        mode: BackendMode,
+        tunnelDnsConfig: TunnelDnsConfig? = null,
+    ): EngineStartResult
 
     suspend fun stop(handle: Int, mode: BackendMode)
 

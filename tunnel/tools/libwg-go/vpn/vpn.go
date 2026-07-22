@@ -20,6 +20,7 @@ import (
 	"github.com/amnezia-vpn/amneziawg-go/ipc"
 	"github.com/amnezia-vpn/amneziawg-go/tun"
 	wireproxyawg "github.com/artem-russkikh/wireproxy-awg"
+	"github.com/wgtunnel/android/dns"
 	"github.com/wgtunnel/android/shared"
 	"golang.org/x/sys/unix"
 )
@@ -41,19 +42,27 @@ func init() {
 }
 
 //export awgTurnOn
-func awgTurnOn(interfaceName string, tunFd int32, settings string, uapiPath string) int32 {
-	tunnel, name, err := tun.CreateUnmonitoredTUNFromFD(int(tunFd))
+func awgTurnOn(interfaceName string, tunFd int32, settings string, uapiPath string, dnsConfigJSON string) int32 {
+	realTUN, name, err := tun.CreateUnmonitoredTUNFromFD(int(tunFd))
 	if err != nil {
 		unix.Close(int(tunFd))
 		shared.LogError(tag, "CreateUnmonitoredTUNFromFD: %v", err)
 		return -1
 	}
 
+	shared.LogDebug(tag, "DNS config passed: %s", dnsConfigJSON)
+	deviceTUN, err := dns.MaybeWrapTUN(realTUN, dnsConfigJSON)
+	if err != nil {
+	    // Base already closed in MaybeWrapTUN
+		shared.LogError(tag, "DNS wrap: %v", err)
+		return -1
+	}
+
 	conf, err := wireproxyawg.ParseConfigString(settings)
 	if err != nil {
 		shared.LogError(tag, "Invalid config file", err)
-		if tunnel != nil {
-			tunnel.Close()
+		if realTUN != nil {
+			realTUN.Close()
 		}
 		return -1
 	}
@@ -61,8 +70,8 @@ func awgTurnOn(interfaceName string, tunFd int32, settings string, uapiPath stri
 	handle, err := shared.GenerateUniqueHandle()
 	if err != nil {
 		shared.LogError(tag, "Unable to generate handle: %v", err)
-		if tunnel != nil {
-			tunnel.Close()
+		if realTUN != nil {
+			realTUN.Close()
 		}
 		return -1
 	}
@@ -78,7 +87,7 @@ func awgTurnOn(interfaceName string, tunFd int32, settings string, uapiPath stri
 		go C.awgNotifyStatus(C.int32_t(handle), C.int32_t(code))
 	}
 
-	tunDevice := device.NewDevice(tunnel, conn.NewStdNetBindWithControl(shared.ProtectControlFunc), shared.NewLogger("Tun/"+interfaceName), statusCB)
+	tunDevice := device.NewDevice(deviceTUN, conn.NewStdNetBindWithControl(shared.ProtectControlFunc), shared.NewLogger("Tun/"+interfaceName), statusCB)
 	tunDevice.DisableSomeRoamingForBrokenMobileSemantics()
 
 	ipcRequest, err := wireproxyawg.CreateIPCRequest(conf.Device, false)

@@ -11,6 +11,7 @@ import (
 	"unsafe"
 
 	"github.com/amnezia-vpn/amneziawg-go/device"
+	corelog "github.com/wgtunnel/core/log"
 	"golang.org/x/sys/unix"
 )
 
@@ -58,5 +59,13 @@ func NewLogger(tag string) *device.Logger {
 		Errorf: func(format string, args ...any) {
 			LogError(tag, format, args...)
 		},
+	}
+}
+
+func NewCoreLogger(tag string) *corelog.Logger {
+	l := NewLogger(tag)
+	return &corelog.Logger{
+		Verbosef: l.Verbosef,
+		Errorf:   l.Errorf,
 	}
 }

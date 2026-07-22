@@ -1,5 +1,6 @@
 package com.zaneschepke.tunnel.backend
 
+import com.zaneschepke.tunnel.backend.dns.TunnelDnsConfig
 import com.zaneschepke.tunnel.model.BackendMode
 import com.zaneschepke.tunnel.model.ProxyConfig
 import com.zaneschepke.tunnel.service.ServiceManager
@@ -7,14 +8,26 @@ import com.zaneschepke.tunnel.service.VpnService
 import com.zaneschepke.tunnel.state.EngineStartResult
 import com.zaneschepke.tunnel.util.BackendException
 import com.zaneschepke.tunnel.util.PortUtils
+import com.zaneschepke.tunnel.util.ensurePort53
+import com.zaneschepke.tunnel.util.parseDnsServersOnly
 import com.zaneschepke.wireguardautotunnel.parser.ActiveConfig
 import com.zaneschepke.wireguardautotunnel.parser.Config
 import com.zaneschepke.wireguardautotunnel.parser.PeerSection
 import java.util.UUID
+import kotlinx.serialization.json.Json
 
 internal class WireGuardTunnelEngine(private val serviceManager: ServiceManager) : TunnelEngine {
 
-    override suspend fun start(tunnelId: Int, mode: BackendMode): EngineStartResult {
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
+
+    override suspend fun start(
+        tunnelId: Int,
+        mode: BackendMode,
+        tunnelDnsConfig: TunnelDnsConfig?,
+    ): EngineStartResult {
 
         val ifName = WGT_INTERFACE_PREFIX + tunnelId
 
@@ -24,11 +37,34 @@ internal class WireGuardTunnelEngine(private val serviceManager: ServiceManager)
             PortUtils.waitForUdpPortAvailable(listenPort)
         }
 
+        // For kill switch configs, we always need to pass TunnelDnsConfig for intercept FAKE DNS
+        // server applied to kill switch
+        // in order to route to the configs real configured DNS server
+        val runtimeDnsConfig =
+            tunnelDnsConfig
+                ?: run {
+                    if (mode is BackendMode.Proxy.KillSwitchPrimary) {
+                        val servers =
+                            mode.config.`interface`.parseDnsServersOnly().map { it.ensurePort53() }
+
+                        if (servers.isEmpty()) {
+                            throw BackendException.ConfigMissingDNS(
+                                "Kill switch requires at least one DNS server in the tunnel config"
+                            )
+                        }
+
+                        TunnelDnsConfig(defaultTransport = "plain", upstream = servers)
+                    } else null
+                }
+
+        val dnsJson = runtimeDnsConfig?.let { json.encodeToString(it) }
+
         val handle =
             when (mode) {
                 is BackendMode.Proxy.KillSwitchPrimary -> {
+                    // TODO extra handling here for proper tunnel dns handling
                     val proxyConfig = buildBridgeProxyConfig()
-                    startProxyTunnel(ifName, mode.config, proxyConfig, true)
+                    startProxyTunnel(ifName, mode.config, proxyConfig, true, dnsJson)
                 }
                 is BackendMode.Proxy.Standard -> {
                     val proxyConfig = mode.proxyConfig
@@ -50,11 +86,11 @@ internal class WireGuardTunnelEngine(private val serviceManager: ServiceManager)
                             )
                         }
                     }
-                    startProxyTunnel(ifName, mode.config, proxyConfig, false)
+                    startProxyTunnel(ifName, mode.config, proxyConfig, false, dnsJson)
                 }
                 is BackendMode.Vpn -> {
                     val service = serviceManager.getVpnService()
-                    startVpnTunnel(ifName, mode.config, service.detachVpnTunnelFd())
+                    startVpnTunnel(ifName, mode.config, service.detachVpnTunnelFd(), dnsJson)
                 }
             }
 
@@ -125,11 +161,22 @@ internal class WireGuardTunnelEngine(private val serviceManager: ServiceManager)
         VpnBackend.awgTurnOff(handle)
     }
 
-    private fun startVpnTunnel(ifName: String, config: Config, fd: Int?): Int {
+    private fun startVpnTunnel(
+        ifName: String,
+        config: Config,
+        fd: Int?,
+        dnsConfigJson: String?,
+    ): Int {
         val tunFd = fd ?: throw BackendException.Unauthorized("Failed to create tun interface")
 
         val handle =
-            VpnBackend.awgTurnOn(ifName, tunFd, config.asQuickString(), serviceManager.uapiPath)
+            VpnBackend.awgTurnOn(
+                ifName,
+                tunFd,
+                config.asQuickString(),
+                serviceManager.uapiPath,
+                dnsConfigJson,
+            )
         if (handle < 0) {
             throw BackendException.InternalError("Internal native error with code: $handle")
         }
@@ -141,6 +188,7 @@ internal class WireGuardTunnelEngine(private val serviceManager: ServiceManager)
         config: Config,
         proxyConfig: ProxyConfig,
         withBridge: Boolean,
+        dnsConfigJson: String?,
     ): Int {
         val quickConfig = buildProxiedQuickString(config, proxyConfig)
 
@@ -150,6 +198,7 @@ internal class WireGuardTunnelEngine(private val serviceManager: ServiceManager)
                 quickConfig,
                 serviceManager.uapiPath,
                 if (withBridge) 1 else 0,
+                dnsConfigJson,
             )
         if (handle < 0) {
             throw BackendException.InternalError("Internal native error")

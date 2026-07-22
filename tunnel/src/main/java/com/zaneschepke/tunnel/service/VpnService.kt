@@ -13,6 +13,7 @@ import com.zaneschepke.tunnel.backend.Backend
 import com.zaneschepke.tunnel.backend.KillSwitch
 import com.zaneschepke.tunnel.backend.ProxyBackend
 import com.zaneschepke.tunnel.backend.SocketProtector
+import com.zaneschepke.tunnel.backend.dns.TunnelDnsConfig
 import com.zaneschepke.tunnel.model.KillSwitchConfig
 import com.zaneschepke.tunnel.service.ServiceManager.Companion.DEFAULT_MTU
 import com.zaneschepke.tunnel.service.ServiceManager.Companion.alwaysOnCallback
@@ -215,13 +216,13 @@ class VpnService : android.net.VpnService(), KillSwitch, SocketProtector {
                     }
                     addRoute(IPV6_DEFAULT_ROUTE, 0)
                     setMtu(DEFAULT_MTU)
-                    addDnsServer(DEFAULT_DNS_SERVER)
+                    addDnsServer(TunnelDnsConfig.FAKE_DNS)
                 }
                 .establish()
         currentKillSwitchConfig = config
     }
 
-    fun createTunInterface(tunnel: Tunnel, config: Config) {
+    fun createTunInterface(tunnel: Tunnel, config: Config, fakeDns: String?) {
         val intent = backend.applicationProvider.createVpnConfigurePendingIntent(this@VpnService)
         vpnTunFd?.close()
         vpnTunFd = null
@@ -279,19 +280,22 @@ class VpnService : android.net.VpnService(), KillSwitch, SocketProtector {
                         allowFamily(OsConstants.AF_INET6)
                     }
 
+                    if (fakeDns != null) addDnsServer(fakeDns)
+
                     // Only add DNS servers whose family is supported
                     config.`interface`.dns?.let { rawDns ->
                         val dnsConfig = rawDns.parseDns()
-                        dnsConfig.dnsServers.forEach { dnsServer ->
-                            val isIpv6 = dnsServer is Inet6Address
-                            if ((isIpv6 && hasIpv6) || (!isIpv6 && hasIpv4)) {
-                                addDnsServer(dnsServer)
-                            } else {
-                                Timber.w(
-                                    "Dropped DNS server $dnsServer: IP family not allowed by interface/routes"
-                                )
+                        if (fakeDns == null)
+                            dnsConfig.dnsServers.forEach { dnsServer ->
+                                val isIpv6 = dnsServer is Inet6Address
+                                if ((isIpv6 && hasIpv6) || (!isIpv6 && hasIpv4)) {
+                                    addDnsServer(dnsServer)
+                                } else {
+                                    Timber.w(
+                                        "Dropped DNS server $dnsServer: IP family not allowed by interface/routes"
+                                    )
+                                }
                             }
-                        }
                         dnsConfig.searchDomains.forEach { addSearchDomain(it) }
                     }
                 }
@@ -363,7 +367,6 @@ class VpnService : android.net.VpnService(), KillSwitch, SocketProtector {
         const val LOCKDOWN_USERNAME = "local"
         private const val IPV4_DEFAULT_ROUTE = "0.0.0.0"
         private const val IPV6_DEFAULT_ROUTE = "::"
-        private const val DEFAULT_DNS_SERVER = "1.1.1.1"
         const val HEV_BRIDGE_TRAFFIC_TAG = 0xF00D
     }
 }

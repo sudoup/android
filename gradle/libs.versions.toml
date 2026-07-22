@@ -35,7 +35,7 @@ composeBom = "2026.06.01"
 compose = "1.11.4"
 icons = "1.7.8"
 workRuntimeKtxVersion = "2.11.2"
-quickieFoss = "1.18.1"
+quickieFoss = "1.19.0"
 coreSplashscreen = "1.2.0"
 gradlePlugins-grgit = "5.3.3"
 reorderable = "3.1.0"
@@ -48,7 +48,7 @@ parser = "1.1.1"
 relinker = "1.4.5"
 libsu = "6.0.0"
 sonner = "0.3.9"
-aboutlibraries = "15.0.3"
+aboutlibraries = "15.0.4"
 
 [bundles]
 # Core AndroidX foundations

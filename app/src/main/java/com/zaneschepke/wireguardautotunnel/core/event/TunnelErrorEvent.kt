@@ -11,6 +11,8 @@ sealed interface TunnelErrorEvent {
 
     data class HttpPortUnavailable(val tunnelId: Int, val port: Int) : TunnelErrorEvent
 
+    data class ConfigMissingDns(val tunnelId: Int) : TunnelErrorEvent
+
     companion object {
         fun from(throwable: Throwable, id: Int): TunnelErrorEvent {
             return when (throwable) {
@@ -25,6 +27,9 @@ sealed interface TunnelErrorEvent {
                 }
                 is BackendException.HttpPortUnavailable -> {
                     HttpPortUnavailable(id, throwable.port)
+                }
+                is BackendException.ConfigMissingDNS -> {
+                    ConfigMissingDns(id)
                 }
                 else -> InternalFailure(id, throwable.message ?: "Unknown")
             }

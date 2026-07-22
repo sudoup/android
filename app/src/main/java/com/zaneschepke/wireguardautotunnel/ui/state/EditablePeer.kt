@@ -1,6 +1,5 @@
 package com.zaneschepke.wireguardautotunnel.ui.state
 
-import com.zaneschepke.wireguardautotunnel.domain.model.TunnelConfig
 import com.zaneschepke.wireguardautotunnel.parser.PeerSection
 import com.zaneschepke.wireguardautotunnel.util.extensions.joinAndTrim
 
@@ -9,7 +8,7 @@ data class EditablePeer(
     val preSharedKey: String = "",
     val persistentKeepalive: String = "",
     val endpoint: String = "",
-    val allowedIps: String = TunnelConfig.ALL_IPS.joinAndTrim(),
+    val allowedIps: String = AllowedIpsCalculator.ALL_IPS.joinAndTrim(),
 ) {
 
     fun toPeerSection(): PeerSection =
@@ -21,13 +20,19 @@ data class EditablePeer(
             persistentKeepalive = persistentKeepalive.toIntOrNull(),
         )
 
-    fun isLanExcluded(): Boolean =
-        this.allowedIps.contains(TunnelConfig.LAN_BYPASS_ALLOWED_IPS.joinAndTrim())
+    fun isLanExcluded(): Boolean {
+        val current = allowedIps.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
 
-    fun includeLan(): EditablePeer = this.copy(allowedIps = TunnelConfig.ALL_IPS.joinAndTrim())
+        return AllowedIpsCalculator.LAN_BYPASS_BASE.all { it in current }
+    }
 
-    fun excludeLan(): EditablePeer =
-        this.copy(allowedIps = TunnelConfig.LAN_BYPASS_ALLOWED_IPS.joinAndTrim())
+    fun includeLan(): EditablePeer =
+        this.copy(allowedIps = AllowedIpsCalculator.ALL_IPS.joinAndTrim())
+
+    // excludeLan not properly calculates LAN bypass to make sure we don't include private IP DNS
+    // servers
+    fun excludeLan(dnsServers: List<String>): EditablePeer =
+        this.copy(allowedIps = AllowedIpsCalculator.calculateLanBypass(dnsServers).joinAndTrim())
 
     companion object {
         fun from(peer: PeerSection): EditablePeer =
@@ -36,7 +41,7 @@ data class EditablePeer(
                 preSharedKey = peer.presharedKey ?: "",
                 persistentKeepalive = peer.persistentKeepalive?.toString() ?: "",
                 endpoint = peer.endpoint ?: "",
-                allowedIps = peer.allowedIPs ?: TunnelConfig.ALL_IPS.joinAndTrim(),
+                allowedIps = peer.allowedIPs ?: AllowedIpsCalculator.ALL_IPS.joinAndTrim(),
             )
     }
 }

@@ -1,14 +1,15 @@
 package com.zaneschepke.tunnel.util
 
 import android.os.Build
-import com.zaneschepke.tunnel.model.BackendMode
 import com.zaneschepke.tunnel.model.DnsBootstrapResult
 import com.zaneschepke.tunnel.model.DnsConfig
-import com.zaneschepke.tunnel.state.BackendStatus
+import com.zaneschepke.tunnel.model.ResolvedHost
 import com.zaneschepke.wireguardautotunnel.parser.Config
+import com.zaneschepke.wireguardautotunnel.parser.InterfaceSection
 import com.zaneschepke.wireguardautotunnel.parser.PeerSection
 import java.net.Inet4Address
 import java.net.InetAddress
+import timber.log.Timber
 
 /** Parses a CIDR string and returns the address + prefix length */
 internal fun String.parseInetNetwork(): Pair<InetAddress, Int> {
@@ -65,37 +66,71 @@ internal fun String.parseDns(): DnsConfig {
     return DnsConfig(servers, domains)
 }
 
-internal fun Config.buildResolvedPeers(hostMap: Map<PublicKey, Host>): List<PeerSection> {
+internal fun Config.buildResolvedPeers(hostMap: Map<PublicKey, ResolvedHost>): List<PeerSection> {
     return this.peers.map { peer ->
-        val updatedHost = hostMap[peer.publicKey] ?: return@map peer
-        val port = peer.endpoint?.substringAfterLast(":") ?: return@map peer
-        peer.copy(endpoint = "$updatedHost:$port")
+        val resolved = hostMap[peer.publicKey] ?: return@map peer
+
+        val port =
+            resolved.forcedPort?.toString()
+                ?: peer.endpoint?.substringAfterLast(":")
+                ?: return@map peer
+
+        peer.copy(endpoint = "${resolved.host}:$port")
     }
 }
 
-fun Map<PublicKey, DnsBootstrapResult>.toHostMap(preferIpv6: Boolean): Map<PublicKey, Host> =
+internal fun Map<PublicKey, DnsBootstrapResult>.toHostMap(
+    preferIpv6: Boolean
+): Map<PublicKey, ResolvedHost> =
     mapNotNull { (pubKey, result) ->
+            val ip4p = result.ipv6.firstNotNullOfOrNull { DnsHostUtils.decodeIp4p(it) }
+
+            // IP4P support
+            if (ip4p != null) {
+                val (ipv4, port) = ip4p
+                Timber.i("IP4P detected for peer!")
+                return@mapNotNull pubKey to ResolvedHost(host = ipv4, forcedPort = port)
+            }
+
+            // Normal path
             val host =
                 if (preferIpv6) {
                     result.ipv6.firstOrNull() ?: result.ipv4.firstOrNull()
                 } else {
                     result.ipv4.firstOrNull() ?: result.ipv6.firstOrNull()
                 }
-            host?.let { pubKey to it }
+
+            host?.let { pubKey to ResolvedHost(it) }
         }
         .toMap()
 
-fun BackendStatus.isLastTunnelOfServiceType(tunnelId: Int): Boolean {
-    val mode = activeTunnels[tunnelId]?.mode ?: return false
-    return when (mode) {
-        is BackendMode.Vpn,
-        is BackendMode.Proxy.KillSwitchPrimary -> {
-            activeTunnels.values.count {
-                it.mode is BackendMode.Vpn || it.mode is BackendMode.Proxy.KillSwitchPrimary
-            } == 1
-        }
-        is BackendMode.Proxy.Standard -> {
-            activeTunnels.values.count { it.mode is BackendMode.Proxy.Standard } == 1
-        }
+fun InterfaceSection.parseDnsServersOnly(): List<String> =
+    dns?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
+
+fun String.ensurePort53(): String = ensureDnsPort(53)
+
+fun String.ensureDnsPort(defaultPort: Int): String {
+    val s = trim()
+    if (s.isEmpty()) return s
+
+    // [IPv6] or [IPv6]:port
+    if (s.startsWith("[")) {
+        val end = s.indexOf(']')
+        if (end <= 1) return s
+        val rest = s.substring(end + 1)
+        if (rest.startsWith(":") && rest.drop(1).toIntOrNull() != null) return s
+        return "$s:$defaultPort"
     }
+
+    // IPv4 or hostname with port (single colon)
+    val colon = s.lastIndexOf(':')
+    if (colon > 0 && s.indexOf(':') == colon) {
+        val port = s.substring(colon + 1).toIntOrNull()
+        if (port != null && port in 1..65535) return s
+    }
+
+    // bare IPv6 without brackets — uncommon in conf; leave unchanged
+    if (s.contains(':')) return s
+
+    return "$s:$defaultPort"
 }

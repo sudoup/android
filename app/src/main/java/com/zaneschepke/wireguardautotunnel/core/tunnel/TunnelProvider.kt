@@ -1,6 +1,7 @@
 package com.zaneschepke.wireguardautotunnel.core.tunnel
 
 import com.zaneschepke.tunnel.Tunnel
+import com.zaneschepke.tunnel.backend.dns.TunnelDnsConfig
 import com.zaneschepke.tunnel.event.TunnelEvent
 import com.zaneschepke.tunnel.model.BackendMode
 import com.zaneschepke.tunnel.state.BackendStatus
@@ -10,7 +11,11 @@ import kotlinx.coroutines.flow.StateFlow
 
 interface TunnelProvider {
 
-    suspend fun startTunnel(tunnel: Tunnel, mode: BackendMode): Result<Unit>
+    suspend fun startTunnel(
+        tunnel: Tunnel,
+        mode: BackendMode,
+        tunnelDnsConfig: TunnelDnsConfig?,
+    ): Result<Unit>
 
     suspend fun stopTunnel(tunnelId: Int): Result<Unit>
 

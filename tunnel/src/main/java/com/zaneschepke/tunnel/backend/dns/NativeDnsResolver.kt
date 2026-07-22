@@ -1,9 +1,13 @@
 package com.zaneschepke.tunnel.backend.dns
 
+import android.net.Network
 import androidx.annotation.Keep
 import com.zaneschepke.tunnel.model.DnsBootstrapResult
+import java.net.Inet4Address
+import java.net.Inet6Address
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.concurrent.atomics.AtomicLong
+import kotlin.concurrent.atomics.AtomicReference
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.concurrent.atomics.incrementAndFetch
 import kotlin.time.Duration.Companion.milliseconds
@@ -16,6 +20,10 @@ import timber.log.Timber
 
 @Keep
 internal object NativeDnsResolver {
+
+    @OptIn(ExperimentalAtomicApi::class)
+    private val underlayNetwork = AtomicReference<Network?>(null)
+    @OptIn(ExperimentalAtomicApi::class) private val underlayNetworkHandle = AtomicLong(0L)
 
     private const val NATIVE_RESOLUTION_TIMEOUT_MILLIS = 7_000L
 
@@ -31,11 +39,49 @@ internal object NativeDnsResolver {
         bypass: Int,
     )
 
+    @JvmStatic private external fun setUnderlayNetworkHandleNative(handle: Long)
+
+    @OptIn(ExperimentalAtomicApi::class)
+    @JvmStatic
+    fun setUnderlayNetwork(network: Network?) {
+        underlayNetwork.store(network)
+        val handle = network?.networkHandle ?: 0L
+        val previous = underlayNetworkHandle.exchange(handle)
+        if (previous != handle) {
+            setUnderlayNetworkHandleNative(handle)
+            Timber.d("Underlay network handle updated: $previous to $handle")
+        }
+    }
+
     @Keep
     @JvmStatic
     fun onResolutionComplete(id: Long, result: String) {
         val callback = callbacks.remove(id)
         callback?.invoke(result)
+    }
+
+    @OptIn(ExperimentalAtomicApi::class)
+    @Keep
+    @JvmStatic
+    fun lookupOnUnderlayNetwork(host: String, networkFamily: String): String {
+        val network = underlayNetwork.load()
+        if (network == null) {
+            Timber.w("lookupOnUnderlayNetwork: no underlay Network for $host")
+            return ""
+        }
+        return try {
+            val addrs = network.getAllByName(host)
+            val filtered =
+                when (networkFamily) {
+                    "ip4" -> addrs.filterIsInstance<Inet4Address>()
+                    "ip6" -> addrs.filterIsInstance<Inet6Address>()
+                    else -> addrs.toList()
+                }
+            filtered.mapNotNull { it.hostAddress }.joinToString("\n")
+        } catch (e: Exception) {
+            Timber.e(e, "lookupOnUnderlayNetwork failed for $host")
+            ""
+        }
     }
 
     @OptIn(ExperimentalAtomicApi::class)

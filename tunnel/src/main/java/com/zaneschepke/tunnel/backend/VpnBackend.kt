@@ -8,7 +8,13 @@ internal object VpnBackend {
 
     external fun awgTurnOff(handle: Int)
 
-    external fun awgTurnOn(ifName: String, tunFd: Int, settings: String, uapiPath: String): Int
+    external fun awgTurnOn(
+        ifName: String,
+        tunFd: Int,
+        settings: String,
+        uapiPath: String,
+        dnsConfigJson: String?,
+    ): Int
 
     external fun awgUpdateTunnelPeers(handle: Int, settings: String): Int
 

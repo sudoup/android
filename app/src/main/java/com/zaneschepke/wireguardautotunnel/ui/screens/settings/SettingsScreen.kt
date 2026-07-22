@@ -171,7 +171,7 @@ fun SettingsScreen(
                     Icon(ImageVector.vectorResource(R.drawable.sdk), contentDescription = null)
                 },
                 trailing = { modifier ->
-                    SheetButtonWithDivider(showModeDivider, modifier) { showAppModeSheet = true }
+                    SheetButtonWithDivider({ showAppModeSheet = true }, modifier, showModeDivider)
                 },
                 title = stringResource(R.string.backend_mode),
                 description = {

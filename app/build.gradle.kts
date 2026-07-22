@@ -18,7 +18,7 @@ ksp {
 licensee {
     allowedLicenses().forEach { allow(it) }
     allowedLicenseUrls().forEach { allowUrl(it) }
-    allowDependency("com.github.T8RIN.QuickieExtended", "quickie-foss", "1.18.1") {
+    allowDependency("com.github.T8RIN.QuickieExtended", "quickie-foss", "1.19.0") {
         because("FOSS library, but JitPack doesn't publish license metadata")
         allow("Apache-2.0")
     }
