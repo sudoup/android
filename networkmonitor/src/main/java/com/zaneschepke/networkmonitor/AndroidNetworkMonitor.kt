@@ -100,6 +100,31 @@ class AndroidNetworkMonitor(
     private val activeCellularNetworks =
         MutableStateFlow<Map<Network, NetworkCapabilities>>(emptyMap())
 
+    private val needsUnderlyingWifiFallback: Boolean by lazy {
+        val manufacturer = Build.MANUFACTURER.lowercase()
+        val brand = Build.BRAND.lowercase()
+
+        val problematic =
+            setOf(
+                // Vivo family
+                "vivo",
+                "iqoo",
+                // OPPO family
+                "oppo",
+                "realme",
+                "oneplus",
+                // Xiaomi family
+                "xiaomi",
+                "redmi",
+                "poco",
+                "blackshark",
+                // Honor
+                "honor",
+            )
+
+        manufacturer in problematic || brand in problematic
+    }
+
     private val permissionCheckFlow: Flow<Unit> = callbackFlow {
         val receiver =
             object : BroadcastReceiver() {
@@ -598,6 +623,20 @@ class AndroidNetworkMonitor(
             hasNotSuspended(caps)
     }
 
+    @Suppress("DEPRECATION")
+    private fun findUnderlyingWifi(): Pair<Network, NetworkCapabilities>? {
+        val cm = connectivityManager ?: return null
+        return cm.allNetworks.firstNotNullOfOrNull { network ->
+            val caps = cm.getNetworkCapabilities(network) ?: return@firstNotNullOfOrNull null
+            if (
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) &&
+                    !caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+            ) {
+                network to caps
+            } else null
+        }
+    }
+
     // default network events don't contain detailed capability information of underlying networks,
     // so we need to track separately
     private data class NetworkData(
@@ -761,18 +800,40 @@ class AndroidNetworkMonitor(
                         }
 
                         else -> {
-                            val bestCellularEntry =
-                                pickBestCellularNetworkEntry()
-                                    ?: activeCellularNetworks.value.entries.firstOrNull()
-                            if (bestCellularEntry != null) {
-                                ActiveNetwork.Cellular(
-                                    bestCellularEntry.key,
-                                    bestCellularEntry.value,
-                                )
-                            } else {
-                                // Keep last known physical during VPN transition
-                                lastKnownActiveNetwork.value
-                            }
+                            // certain OEMs fail to fire Wi-Fi callbacks while a VPN is active, to
+                            // get around this, we
+                            // use the all networks API to find the underlying Wi-Fi network and
+                            // fallback to legacy detection for default mode
+                            // as the capabilities won't have location restricted information
+                            val oemFallbackWifiNetwork =
+                                if (isVpnActive && needsUnderlyingWifiFallback) {
+                                    findUnderlyingWifi()?.let { (network, caps) ->
+                                        val detectionMethod =
+                                            if (detectionMethod == DEFAULT) {
+                                                LEGACY
+                                            } else detectionMethod
+                                        buildWifiNetwork(
+                                            network,
+                                            caps,
+                                            detectionMethod,
+                                            lastKnownActiveNetwork.value,
+                                        )
+                                    }
+                                } else null
+                            if (oemFallbackWifiNetwork == null) {
+                                val bestCellularEntry =
+                                    pickBestCellularNetworkEntry()
+                                        ?: activeCellularNetworks.value.entries.firstOrNull()
+                                if (bestCellularEntry != null) {
+                                    ActiveNetwork.Cellular(
+                                        bestCellularEntry.key,
+                                        bestCellularEntry.value,
+                                    )
+                                } else {
+                                    // Keep last known physical during VPN transition
+                                    lastKnownActiveNetwork.value
+                                }
+                            } else oemFallbackWifiNetwork
                         }
                     }
 

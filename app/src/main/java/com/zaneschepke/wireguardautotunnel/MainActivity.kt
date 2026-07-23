@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.WindowManager
 import androidx.activity.SystemBarStyle
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -496,6 +497,9 @@ class MainActivity : AppCompatActivity() {
                                             )
                                             .consumeWindowInsets(padding)
                                 ) {
+                                    BackHandler(enabled = uiState.selectedTunnelCount > 0) {
+                                        viewModel.clearSelectedTunnels()
+                                    }
                                     NavDisplay(
                                         backStack = backStack,
                                         modifier = Modifier.fillMaxSize(),
