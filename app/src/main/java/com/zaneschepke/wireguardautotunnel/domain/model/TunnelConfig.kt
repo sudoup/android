@@ -1,11 +1,11 @@
 package com.zaneschepke.wireguardautotunnel.domain.model
 
-import com.zaneschepke.tunnel.Tunnel
+import com.wgtunnel.backend.Tunnel
+import com.wgtunnel.parser.Config
+import com.wgtunnel.parser.InterfaceSection
+import com.wgtunnel.parser.PeerSection
+import com.wgtunnel.parser.crypto.Key
 import com.zaneschepke.wireguardautotunnel.data.entity.TunnelConfig.Companion.GLOBAL_CONFIG_NAME
-import com.zaneschepke.wireguardautotunnel.parser.Config
-import com.zaneschepke.wireguardautotunnel.parser.InterfaceSection
-import com.zaneschepke.wireguardautotunnel.parser.PeerSection
-import com.zaneschepke.wireguardautotunnel.parser.crypto.Key
 import com.zaneschepke.wireguardautotunnel.ui.state.TunnelSummary
 import com.zaneschepke.wireguardautotunnel.util.extensions.defaultName
 

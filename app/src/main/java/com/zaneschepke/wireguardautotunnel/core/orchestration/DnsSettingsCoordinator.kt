@@ -1,8 +1,8 @@
 package com.zaneschepke.wireguardautotunnel.core.orchestration
 
-import com.zaneschepke.tunnel.backend.Backend
-import com.zaneschepke.tunnel.model.DnsBoostrapConfig
-import com.zaneschepke.tunnel.model.DnsBoostrapMode
+import com.wgtunnel.backend.Backend
+import com.wgtunnel.backend.model.dns.DnsBoostrapConfig
+import com.wgtunnel.backend.model.dns.DnsBoostrapMode
 import com.zaneschepke.wireguardautotunnel.domain.enums.BootstrapDnsProtocol
 import com.zaneschepke.wireguardautotunnel.domain.model.DnsSettings
 

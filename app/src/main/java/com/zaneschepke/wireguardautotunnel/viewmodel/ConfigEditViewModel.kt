@@ -2,6 +2,7 @@ package com.zaneschepke.wireguardautotunnel.viewmodel
 
 import androidx.lifecycle.ViewModel
 import com.dokar.sonner.ToastType
+import com.wgtunnel.parser.ConfigParseException
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.core.orchestration.TunnelCoordinator
 import com.zaneschepke.wireguardautotunnel.domain.enums.MimicMode
@@ -11,7 +12,6 @@ import com.zaneschepke.wireguardautotunnel.domain.repository.GeneralSettingRepos
 import com.zaneschepke.wireguardautotunnel.domain.repository.GlobalEffectRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.TunnelRepository
 import com.zaneschepke.wireguardautotunnel.domain.sideeffect.GlobalSideEffect
-import com.zaneschepke.wireguardautotunnel.parser.ConfigParseException
 import com.zaneschepke.wireguardautotunnel.ui.state.ConfigDraft
 import com.zaneschepke.wireguardautotunnel.ui.state.ConfigEditUiState
 import com.zaneschepke.wireguardautotunnel.ui.state.ConfigUiState

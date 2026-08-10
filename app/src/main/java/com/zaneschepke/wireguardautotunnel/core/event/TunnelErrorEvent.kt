@@ -1,6 +1,6 @@
 package com.zaneschepke.wireguardautotunnel.core.event
 
-import com.zaneschepke.tunnel.util.BackendException
+import com.wgtunnel.backend.exception.BackendException
 
 sealed interface TunnelErrorEvent {
     data class VpnPermissionDenied(val tunnelId: Int) : TunnelErrorEvent

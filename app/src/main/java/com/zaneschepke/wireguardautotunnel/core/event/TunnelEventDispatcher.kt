@@ -2,14 +2,14 @@ package com.zaneschepke.wireguardautotunnel.core.event
 
 import android.content.Context
 import com.dokar.sonner.ToastType
-import com.zaneschepke.tunnel.event.TunnelEvent
+import com.wgtunnel.backend.event.TunnelEvent
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.domain.repository.GlobalEffectRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.TunnelRepository
-import com.zaneschepke.wireguardautotunnel.domain.sideeffect.GlobalSideEffect.*
+import com.zaneschepke.wireguardautotunnel.domain.sideeffect.GlobalSideEffect.Snackbar
 import com.zaneschepke.wireguardautotunnel.lifecyle.AppVisibilityObserver
 import com.zaneschepke.wireguardautotunnel.notification.TunnelNotificationService
-import com.zaneschepke.wireguardautotunnel.util.StringValue.*
+import com.zaneschepke.wireguardautotunnel.util.StringValue.DynamicString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow

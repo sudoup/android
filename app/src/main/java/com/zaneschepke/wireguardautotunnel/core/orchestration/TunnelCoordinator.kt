@@ -1,6 +1,6 @@
 package com.zaneschepke.wireguardautotunnel.core.orchestration
 
-import com.zaneschepke.tunnel.model.BackendMode
+import com.wgtunnel.backend.model.BackendMode
 import com.zaneschepke.wireguardautotunnel.core.event.TunnelErrorEvent
 import com.zaneschepke.wireguardautotunnel.core.tunnel.TunnelProvider
 import com.zaneschepke.wireguardautotunnel.data.repository.RoomDnsSettingsRepository

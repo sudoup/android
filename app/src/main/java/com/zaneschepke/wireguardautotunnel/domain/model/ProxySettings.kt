@@ -1,6 +1,6 @@
 package com.zaneschepke.wireguardautotunnel.domain.model
 
-import com.zaneschepke.tunnel.model.ProxyConfig
+import com.wgtunnel.backend.model.ProxyConfig
 
 data class ProxySettings(
     val id: Long = 0,

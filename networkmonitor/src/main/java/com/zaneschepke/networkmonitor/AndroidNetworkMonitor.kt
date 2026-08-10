@@ -34,8 +34,8 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
@@ -43,7 +43,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -700,7 +700,7 @@ class AndroidNetworkMonitor(
     }
 
     @OptIn(FlowPreview::class)
-    override val connectivityStateFlow: SharedFlow<ConnectivityState> =
+    override val connectivityStateFlow: StateFlow<ConnectivityState?> =
         combine(
                 networkFlows,
                 airplaneModeState,
@@ -886,7 +886,11 @@ class AndroidNetworkMonitor(
             }
             .distinctUntilChanged()
             .debounce(300.milliseconds)
-            .shareIn(applicationScope, SharingStarted.Eagerly, replay = 1)
+            .stateIn(
+                scope = applicationScope,
+                started = SharingStarted.Eagerly,
+                initialValue = null,
+            )
 
     private suspend fun buildWifiNetwork(
         network: Network,

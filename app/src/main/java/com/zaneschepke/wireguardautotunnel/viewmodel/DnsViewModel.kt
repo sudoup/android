@@ -42,11 +42,11 @@ class DnsViewModel(
                         state.copy(
                             dnsSettings = dnsSettings,
                             globalTunnelConfig = globalTunnelConfig,
-                            systemDnsInfo = connectivity.underlyingDnsInfo,
+                            systemDnsInfo = connectivity?.underlyingDnsInfo,
                             isLoading = false,
                         )
                     } else {
-                        state.copy(systemDnsInfo = connectivity.underlyingDnsInfo)
+                        state.copy(systemDnsInfo = connectivity?.underlyingDnsInfo)
                     }
                 }
                 .collect { newState -> reduce { newState } }

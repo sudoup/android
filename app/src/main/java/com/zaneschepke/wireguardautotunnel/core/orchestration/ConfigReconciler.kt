@@ -1,7 +1,7 @@
 package com.zaneschepke.wireguardautotunnel.core.orchestration
 
-import com.zaneschepke.wireguardautotunnel.parser.Config
-import com.zaneschepke.wireguardautotunnel.parser.InterfaceSection
+import com.wgtunnel.parser.Config
+import com.wgtunnel.parser.InterfaceSection
 
 object ConfigReconciler {
     private fun mergeInterface(

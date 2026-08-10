@@ -2,9 +2,9 @@ package com.zaneschepke.wireguardautotunnel
 
 import android.app.Application
 import android.os.StrictMode
-import com.zaneschepke.tunnel.backend.Backend
-import com.zaneschepke.tunnel.di.tunnelModule
-import com.zaneschepke.tunnel.service.VpnService
+import com.wgtunnel.backend.Backend
+import com.wgtunnel.backend.service.AlwaysOnCallback
+import com.wgtunnel.backend.service.RuntimeManager
 import com.zaneschepke.wireguardautotunnel.core.event.TunnelEventDispatcher
 import com.zaneschepke.wireguardautotunnel.core.orchestration.AppBoostrapCoordinator
 import com.zaneschepke.wireguardautotunnel.core.orchestration.TunnelCoordinator
@@ -50,7 +50,7 @@ class WireGuardAutoTunnel : Application(), KoinComponent {
     private val backend: Backend by inject()
 
     private val alwaysOnCallback =
-        object : VpnService.AlwaysOnCallback {
+        object : AlwaysOnCallback {
             override fun alwaysOnTriggered() {
                 applicationScope.launch { tunnelCoordinator.startDefault() }
             }
@@ -68,7 +68,6 @@ class WireGuardAutoTunnel : Application(), KoinComponent {
                 appModule,
                 databaseModule,
                 tunnelBackendProviderModule,
-                tunnelModule,
                 workerModule,
                 coordinatorModule,
             )
@@ -89,7 +88,7 @@ class WireGuardAutoTunnel : Application(), KoinComponent {
             Timber.plant(ReleaseTree())
         }
 
-        backend.setAlwaysOnCallback(alwaysOnCallback)
+        RuntimeManager.alwaysOnCallback = alwaysOnCallback
 
         val dispatcher = get<TunnelEventDispatcher>()
         val provider = get<TunnelProvider>()
