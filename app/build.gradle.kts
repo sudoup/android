@@ -197,7 +197,7 @@ androidComponents {
 dependencies {
     implementation(project(":logcatter"))
     implementation(project(":networkmonitor"))
-    implementation(project(":tunnel"))
+    implementation(libs.bundles.wgtunnel.core)
 
     // Core foundations
     implementation(libs.bundles.androidx.core.full)
@@ -252,6 +252,10 @@ dependencies {
 
     // Lifecycle Compose
     implementation(libs.lifecycle.runtime.compose)
+
+    // Local dev
+//    implementation("com.wgtunnel.tunnel:backend")
+//    implementation("com.wgtunnel.tunnel:backend-android")
 
     // Testing
     testImplementation(libs.junit)

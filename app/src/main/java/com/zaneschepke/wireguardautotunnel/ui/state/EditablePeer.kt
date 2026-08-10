@@ -1,6 +1,7 @@
 package com.zaneschepke.wireguardautotunnel.ui.state
 
-import com.zaneschepke.wireguardautotunnel.parser.PeerSection
+import AllowedIpsCalculator
+import com.wgtunnel.parser.PeerSection
 import com.zaneschepke.wireguardautotunnel.util.extensions.joinAndTrim
 
 data class EditablePeer(

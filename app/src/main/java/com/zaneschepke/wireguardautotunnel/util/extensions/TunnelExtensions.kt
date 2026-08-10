@@ -1,16 +1,16 @@
 package com.zaneschepke.wireguardautotunnel.util.extensions
 
-import com.zaneschepke.tunnel.backend.dns.TunnelDnsConfig
-import com.zaneschepke.tunnel.util.BackendException
-import com.zaneschepke.tunnel.util.ensurePort53
-import com.zaneschepke.tunnel.util.parseDnsServersOnly
+import com.wgtunnel.backend.exception.BackendException
+import com.wgtunnel.backend.model.dns.TunnelDnsConfig
+import com.wgtunnel.backend.util.DnsHostUtils
+import com.wgtunnel.backend.util.parseDnsServersOnly
+import com.wgtunnel.parser.Config
+import com.wgtunnel.parser.ConfigParseException
+import com.wgtunnel.parser.InterfaceSection
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelDnsMode
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelDnsProtocol
 import com.zaneschepke.wireguardautotunnel.domain.model.DnsSettings
-import com.zaneschepke.wireguardautotunnel.parser.Config
-import com.zaneschepke.wireguardautotunnel.parser.ConfigParseException
-import com.zaneschepke.wireguardautotunnel.parser.InterfaceSection
 import com.zaneschepke.wireguardautotunnel.util.NumberUtils
 import com.zaneschepke.wireguardautotunnel.util.StringValue
 import java.net.URI
@@ -95,7 +95,7 @@ fun DnsSettings.toTunnelDnsConfigOrNull(config: Config): TunnelDnsConfig? {
             val (transport, host, endpoints) =
                 if (tunnelDnsProtocol == TunnelDnsProtocol.Plain && useTunnelDnsServersInSplit) {
                     val endpoints =
-                        config.`interface`.parseDnsServersOnly().map { it.ensurePort53() }
+                        config.parseDnsServersOnly().map { DnsHostUtils.ensurePort53(it) }
                     if (endpoints.isEmpty()) {
                         throw BackendException.ConfigMissingDNS(
                             "Split with tunnel DNS requires DNS servers in the tunnel config"
@@ -118,7 +118,7 @@ fun DnsSettings.toTunnelDnsConfigOrNull(config: Config): TunnelDnsConfig? {
                         }
 
                         TunnelDnsProtocol.Plain -> {
-                            Triple("plain", null, listOf(endpoint.ensurePort53()))
+                            Triple("plain", null, listOf(DnsHostUtils.ensurePort53(endpoint)))
                         }
                     }
                 }

@@ -3,9 +3,9 @@ package com.zaneschepke.wireguardautotunnel.viewmodel
 import androidx.core.content.PermissionChecker.PERMISSION_GRANTED
 import androidx.lifecycle.ViewModel
 import com.dokar.sonner.ToastType
+import com.wgtunnel.backend.shell.ShellExecutor
 import com.zaneschepke.networkmonitor.NetworkMonitor
 import com.zaneschepke.networkmonitor.StableNetworkEngine
-import com.zaneschepke.tunnel.util.RootShell
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.core.orchestration.AutoTunnelCoordinator
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelMode
@@ -282,7 +282,7 @@ class AutoTunnelViewModel(
     fun setWifiDetectionMethod(method: WifiDetectionMethod) = intent {
         when (method) {
             WifiDetectionMethod.ROOT -> {
-                val accepted = RootShell.requestRootPermission()
+                val accepted = ShellExecutor.requestPrivilegedAccess()
                 if (!accepted)
                     return@intent postSideEffect(
                         GlobalSideEffect.Snackbar(

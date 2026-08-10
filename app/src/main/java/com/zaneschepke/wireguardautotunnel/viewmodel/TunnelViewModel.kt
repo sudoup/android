@@ -53,6 +53,8 @@ class TunnelViewModel(
 
     fun onMetered(to: Boolean) = intent { tunnelRepository.setMetered(tunnelId, to) }
 
+    fun onDDNSTunnel(to: Boolean) = intent { tunnelRepository.setDDNSTunnel(tunnelId, to) }
+
     fun onIPv6Action(iPv6Intent: IPv6Intent) = intent {
         val tunnel = state.tunnel ?: return@intent
 

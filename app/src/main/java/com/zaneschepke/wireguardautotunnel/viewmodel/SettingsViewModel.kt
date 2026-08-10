@@ -2,7 +2,7 @@ package com.zaneschepke.wireguardautotunnel.viewmodel
 
 import androidx.lifecycle.ViewModel
 import com.dokar.sonner.ToastType
-import com.zaneschepke.tunnel.util.RootShell
+import com.wgtunnel.backend.shell.ShellExecutor
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.core.orchestration.TunnelCoordinator
 import com.zaneschepke.wireguardautotunnel.core.shortcut.ShortcutManager
@@ -96,7 +96,7 @@ class SettingsViewModel(
 
     fun setTunnelScriptedEnabled(to: Boolean) = intent {
         if (to) {
-            val accepted = RootShell.requestRootPermission()
+            val accepted = ShellExecutor.requestPrivilegedAccess()
             if (!accepted)
                 return@intent postSideEffect(
                     GlobalSideEffect.Snackbar(

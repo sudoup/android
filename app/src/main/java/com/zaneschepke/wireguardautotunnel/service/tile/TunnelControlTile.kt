@@ -3,7 +3,7 @@ package com.zaneschepke.wireguardautotunnel.service.tile
 import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
-import com.zaneschepke.tunnel.state.ActiveTunnel
+import com.wgtunnel.backend.state.ActiveTunnel
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.core.orchestration.TunnelCoordinator
 import com.zaneschepke.wireguardautotunnel.domain.repository.TunnelRepository

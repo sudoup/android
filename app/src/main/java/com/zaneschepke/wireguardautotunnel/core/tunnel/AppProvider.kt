@@ -4,9 +4,9 @@ import android.app.Notification
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import com.zaneschepke.tunnel.ApplicationProvider
-import com.zaneschepke.tunnel.model.BackendMode
-import com.zaneschepke.tunnel.state.BackendStatus
+import com.wgtunnel.backend.AndroidApplicationProvider
+import com.wgtunnel.backend.model.BackendMode
+import com.wgtunnel.backend.state.BackendStatus
 import com.zaneschepke.wireguardautotunnel.MainActivity
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.domain.repository.TunnelRepository
@@ -20,15 +20,15 @@ import com.zaneschepke.wireguardautotunnel.service.tile.TunnelTileRefresher
 import com.zaneschepke.wireguardautotunnel.ui.state.DisplayTunnelState
 import kotlinx.coroutines.flow.first
 
-class AndroidApplicationProvider(
+class AppProvider(
     private val notificationService: NotificationService,
     private val tunnelNotificationService: TunnelNotificationService,
     private val tunnelRepository: TunnelRepository,
-) : ApplicationProvider {
+) : AndroidApplicationProvider {
 
-    private val context: Context = notificationService.context
+    override val context: Context = notificationService.context
 
-    override fun refreshTile(context: Context) {
+    override fun refreshStatusUi() {
         TunnelTileRefresher.refresh(context)
     }
 
@@ -67,17 +67,13 @@ class AndroidApplicationProvider(
     override val proxyNotificationId: Int
         get() = NotificationService.PROXY_NOTIFICATION_ID
 
-    override suspend fun buildVpnPersistentNotification(
-        currentStatus: BackendStatus
-    ): Notification {
-        val lines = computeVpnNotificationLines(currentStatus)
+    override suspend fun buildVpnPersistentNotification(status: BackendStatus): Notification {
+        val lines = computeVpnNotificationLines(status)
         return tunnelNotificationService.buildVpnPersistentNotification(lines)
     }
 
-    override suspend fun buildProxyPersistentNotification(
-        currentStatus: BackendStatus
-    ): Notification {
-        val lines = computeProxyNotificationLines(currentStatus)
+    override suspend fun buildProxyPersistentNotification(status: BackendStatus): Notification {
+        val lines = computeProxyNotificationLines(status)
         return tunnelNotificationService.buildProxyPersistentNotification(lines)
     }
 

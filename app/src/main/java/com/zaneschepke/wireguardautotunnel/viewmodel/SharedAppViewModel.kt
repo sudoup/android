@@ -4,6 +4,8 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dokar.sonner.ToastType
+import com.wgtunnel.parser.Config
+import com.wgtunnel.parser.ConfigParseException
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.core.orchestration.TunnelBackendCoordinator
 import com.zaneschepke.wireguardautotunnel.core.orchestration.TunnelCoordinator
@@ -15,7 +17,6 @@ import com.zaneschepke.wireguardautotunnel.domain.repository.GlobalEffectReposit
 import com.zaneschepke.wireguardautotunnel.domain.repository.SelectedTunnelsRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.TunnelRepository
 import com.zaneschepke.wireguardautotunnel.domain.sideeffect.GlobalSideEffect
-import com.zaneschepke.wireguardautotunnel.parser.ConfigParseException
 import com.zaneschepke.wireguardautotunnel.service.ServiceManager
 import com.zaneschepke.wireguardautotunnel.service.autotunnel.AutoTunnelStateHolder
 import com.zaneschepke.wireguardautotunnel.ui.sideeffect.LocalSideEffect
@@ -252,8 +253,10 @@ class SharedAppViewModel(
 
     fun importTunnelConfigs(configs: Map<QuickConfig, TunnelName>) = intent {
         try {
-            val tunnelConfigs = configs.map { (config, name) ->
-                TunnelConfig.tunnelConfFromQuick(config, name)
+            val tunnelConfigs = configs.map { (quick, name) ->
+                val config = Config.parseQuickString(quick)
+                config.validate()
+                TunnelConfig.fromConfig(config, name)
             }
             tunnelRepository.saveTunnelsUniquely(tunnelConfigs, state.tunnelNames.map { it.value })
         } catch (e: Exception) {
@@ -373,7 +376,8 @@ class SharedAppViewModel(
 
     fun copySelectedTunnel() = intent {
         val selected = tunnelsUiState.value.selectedTunnels.firstOrNull() ?: return@intent
-        val copy = TunnelConfig.tunnelConfFromQuick(selected.quickConfig, selected.name)
+        val config = selected.getConfig()
+        val copy = TunnelConfig.fromConfig(config, selected.name)
         tunnelRepository.saveTunnelsUniquely(listOf(copy), state.tunnelNames.map { it.value })
         clearSelectedTunnels()
     }

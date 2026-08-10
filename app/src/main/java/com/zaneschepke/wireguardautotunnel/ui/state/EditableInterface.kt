@@ -1,7 +1,7 @@
 package com.zaneschepke.wireguardautotunnel.ui.state
 
-import com.zaneschepke.wireguardautotunnel.parser.Config
-import com.zaneschepke.wireguardautotunnel.parser.InterfaceSection
+import com.wgtunnel.parser.Config
+import com.wgtunnel.parser.InterfaceSection
 import com.zaneschepke.wireguardautotunnel.util.extensions.joinAndTrim
 
 data class EditableInterface(

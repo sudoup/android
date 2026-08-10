@@ -1,11 +1,11 @@
 package com.zaneschepke.wireguardautotunnel.domain.model
 
-import com.zaneschepke.tunnel.Tunnel
+import com.wgtunnel.backend.Tunnel
+import com.wgtunnel.parser.Config
+import com.wgtunnel.parser.InterfaceSection
+import com.wgtunnel.parser.PeerSection
+import com.wgtunnel.parser.crypto.Key
 import com.zaneschepke.wireguardautotunnel.data.entity.TunnelConfig.Companion.GLOBAL_CONFIG_NAME
-import com.zaneschepke.wireguardautotunnel.parser.Config
-import com.zaneschepke.wireguardautotunnel.parser.InterfaceSection
-import com.zaneschepke.wireguardautotunnel.parser.PeerSection
-import com.zaneschepke.wireguardautotunnel.parser.crypto.Key
 import com.zaneschepke.wireguardautotunnel.ui.state.TunnelSummary
 import com.zaneschepke.wireguardautotunnel.util.extensions.defaultName
 
@@ -23,6 +23,7 @@ data class TunnelConfig(
     val isMetered: Boolean = false,
     val ipv6RestoreEnabled: Boolean = false,
     val tunnelBSSIDs: List<String> = emptyList(),
+    val isDDNSTunnel: Boolean = false,
 ) {
 
     fun toSummary() = TunnelSummary(id = id, name = name)
@@ -71,7 +72,14 @@ data class TunnelConfig(
                         )
                     )
                 }
-                if (generalSettings.seamlessRecoveryEnabled) add(Tunnel.Feature.SeamlessRecovery)
+                add(
+                    Tunnel.Feature.Recovery(
+                        seamlessRecovery = generalSettings.seamlessRecoveryEnabled,
+                        dynamicDnsRecovery = config.isDDNSTunnel,
+                        ipv4Fallback = config.isIpv6Preferred,
+                        ipv6Recovery = config.ipv6RestoreEnabled,
+                    )
+                )
             }
 
         override fun updateState(state: Tunnel.State) = Unit
@@ -79,11 +87,10 @@ data class TunnelConfig(
 
     companion object {
 
-        fun tunnelConfFromQuick(amQuick: String, name: String? = null): TunnelConfig {
-            val config = Config.parseQuickString(amQuick)
+        fun fromConfig(config: Config, nameIfMissing: String? = null): TunnelConfig {
             return TunnelConfig(
-                name = config.name ?: name ?: config.defaultName(),
-                quickConfig = amQuick,
+                name = config.name ?: nameIfMissing ?: config.defaultName(),
+                quickConfig = config.asQuickString(),
             )
         }
 

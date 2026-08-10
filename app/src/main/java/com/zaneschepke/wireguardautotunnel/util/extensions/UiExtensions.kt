@@ -15,8 +15,8 @@ import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
+import com.wgtunnel.backend.state.ActiveTunnel
 import com.zaneschepke.networkmonitor.AndroidNetworkMonitor
-import com.zaneschepke.tunnel.state.ActiveTunnel
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelDnsMode
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelMode
