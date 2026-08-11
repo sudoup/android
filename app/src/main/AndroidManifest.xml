@@ -38,10 +38,7 @@
     <uses-feature
         android:name="android.hardware.screen.portrait"
         android:required="false" />
-	<uses-feature
-		android:name="android.hardware.gamepad"
-		android:required="false"/>
-
+    
 	<uses-feature android:name="android.hardware.wifi"
 		android:required="false"/>
     <application
