@@ -26,8 +26,8 @@ rootProject.name = "WG Tunnel"
 //		substitute(module("com.wgtunnel.tunnel:backend"))
 //			.using(project(":backend"))
 //		// if the app also needs the android native AAR wrapper:
-//		substitute(module("com.wgtunnel.tunnel:backend-android"))
-//			.using(project(":backend-android"))
+//		substitute(module("com.wgtunnel.tunnel:backend-android-jni"))
+//			.using(project(":backend-android-jni"))
 //	}
 //}
 
