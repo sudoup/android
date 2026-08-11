@@ -217,6 +217,15 @@ class MainActivity : AppCompatActivity() {
             var showLocalNetworkRationale by remember { mutableStateOf(false) }
             var hasPromptedLocalNetwork by rememberSaveable { mutableStateOf(false) }
 
+            val requestPermissionLauncher =
+                rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+                    isGranted ->
+                    if (isGranted) {
+                        // Export the files on granted
+                        viewModel.exportSelectedTunnels(uri = null, context)
+                    }
+                }
+
             val localNetworkPermissionLauncher =
                 rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestPermission()
@@ -308,6 +317,11 @@ class MainActivity : AppCompatActivity() {
                         is GlobalSideEffect.Snackbar -> snackbarChannel.send(sideEffect)
                         is GlobalSideEffect.LaunchUrl -> context.openWebUrl(sideEffect.url)
                         is GlobalSideEffect.InstallApk -> context.installApk(sideEffect.apk)
+                        GlobalSideEffect.RequestWriteStoragePermission -> {
+                            requestPermissionLauncher.launch(
+                                Manifest.permission.WRITE_EXTERNAL_STORAGE
+                            )
+                        }
                     }
                 }
             }

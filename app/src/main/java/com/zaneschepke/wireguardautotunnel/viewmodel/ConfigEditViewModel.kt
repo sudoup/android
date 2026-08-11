@@ -126,44 +126,42 @@ class ConfigEditViewModel(
         }
 
         runCatching {
-                val config = state.draft.config.buildConfig(state.draft.tunnelName)
+            val config = state.draft.config.buildConfig(state.draft.tunnelName)
 
-                config.validate()
+            config.validate()
 
-                val tunnelConfig =
-                    if (tunnelId == null) {
-                        TunnelConfig.fromConfig(config, state.draft.tunnelName)
-                    } else {
-                        state.tunnel?.copy(
-                            name = state.draft.tunnelName,
-                            quickConfig = config.asQuickString(),
-                        )
-                    }
-
-                tunnelConfig?.let {
-                    tunnelRepository.save(it)
-
-                    dnsSettingsRepository.updateGlobalDnsEnabled(state.globalSettings.dnsEnabled)
-
-                    settingsRepository.updateGlobalAmneziaEnabled(
-                        state.globalSettings.amneziaEnabled
+            val tunnelConfig =
+                if (tunnelId == null) {
+                    TunnelConfig.fromConfig(config, state.draft.tunnelName)
+                } else {
+                    state.tunnel?.copy(
+                        name = state.draft.tunnelName,
+                        quickConfig = config.asQuickString(),
                     )
-
-                    if (state.isRunning) {
-                        tunnelCoordinator.stopTunnel(it.id)
-                        tunnelCoordinator.startTunnel(it)
-                    }
-
-                    postSideEffect(
-                        GlobalSideEffect.Snackbar(
-                            StringValue.StringResource(R.string.config_changes_saved),
-                            ToastType.Success,
-                        )
-                    )
-
-                    postSideEffect(GlobalSideEffect.PopBackStack)
                 }
+
+            tunnelConfig?.let {
+                tunnelRepository.save(it)
+
+                dnsSettingsRepository.updateGlobalDnsEnabled(state.globalSettings.dnsEnabled)
+
+                settingsRepository.updateGlobalAmneziaEnabled(state.globalSettings.amneziaEnabled)
+
+                if (state.isRunning) {
+                    tunnelCoordinator.stopTunnel(it.id)
+                    tunnelCoordinator.startTunnel(it)
+                }
+
+                postSideEffect(
+                    GlobalSideEffect.Snackbar(
+                        StringValue.StringResource(R.string.config_changes_saved),
+                        ToastType.Success,
+                    )
+                )
+
+                postSideEffect(GlobalSideEffect.PopBackStack)
             }
+        }
             .onFailure {
                 Timber.e(it)
 
