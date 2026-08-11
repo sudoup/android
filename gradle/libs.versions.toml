@@ -46,13 +46,13 @@ licensee = "1.14.1"
 lifecycleViewmodelNavigation3 = "2.11.0"
 sonner = "0.4.0"
 aboutlibraries = "15.0.4"
-core = "1.0.1"
+core = "1.0.2"
 
 [bundles]
 # Core AndroidX foundations
 androidx-core-full = ["androidx-core", "androidx-core-ktx"]
 
-wgtunnel-core = ["wgtunnel-backend", "wgtunnel-backend-android"]
+wgtunnel-core = ["wgtunnel-backend", "wgtunnel-backend-android", "wgtunnel-parser", "wgtunnel-hevtunnel", "wgtunnel-backend-android-jni"]
 
 # Lifecycle components (merged non-compose ones for common usage)
 androidx-lifecycle-core = ["androidx-lifecycle-runtime-ktx", "androidx-lifecycle-service", "androidx-lifecycle-process"]
@@ -200,6 +200,9 @@ aboutlibraries-compose = { module = "com.mikepenz:aboutlibraries-compose-m3", ve
 # Backend
 wgtunnel-backend = { module = "com.wgtunnel:backend", version.ref = "core" }
 wgtunnel-backend-android = { module = "com.wgtunnel:backend-android", version.ref = "core" }
+wgtunnel-backend-android-jni = { module = "com.wgtunnel:backend-android-jni", version.ref = "core" }
+wgtunnel-hevtunnel = { module = "com.wgtunnel:hevtunnel", version.ref = "core" }
+wgtunnel-parser = { module = "com.wgtunnel:parser", version.ref = "core" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
