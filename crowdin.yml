@@ -1,15 +1,7 @@
-#
-# Crowdin configuration
-#
 preserve_hierarchy: true
-
 files:
-  - source: "/app/src/main/res/values/strings.xml"
-    translation: "/app/src/main/res/values-%android_code%/%original_file_name%"
-    # Omit keys with no translation
-    skip_untranslated_strings: true
-    # Do not create locale files that would be empty / fully untranslated
-    skip_untranslated_files: true
+  - source: /app/src/main/res/values/strings.xml
+    translation: /app/src/main/res/values-%android_code%/%original_file_name%
     languages_mapping:
       android_code:
         es: es
@@ -47,10 +39,8 @@ files:
     excluded_target_languages:
       - en
       - en-US
-
-  - source: "/fastlane/metadata/android/en-US/title.txt"
-    translation: "/fastlane/metadata/android/%locale%/%original_file_name%"
-    skip_untranslated_files: true
+  - source: /fastlane/metadata/android/en-US/title.txt
+    translation: /fastlane/metadata/android/%locale%/%original_file_name%
     languages_mapping:
       locale:
         et-EE: et
@@ -62,10 +52,8 @@ files:
     excluded_target_languages:
       - en
       - en-US
-
-  - source: "/fastlane/metadata/android/en-US/short_description.txt"
-    translation: "/fastlane/metadata/android/%locale%/%original_file_name%"
-    skip_untranslated_files: true
+  - source: /fastlane/metadata/android/en-US/short_description.txt
+    translation: /fastlane/metadata/android/%locale%/%original_file_name%
     languages_mapping:
       locale:
         et-EE: et
@@ -77,10 +65,8 @@ files:
     excluded_target_languages:
       - en
       - en-US
-
-  - source: "/fastlane/metadata/android/en-US/full_description.txt"
-    translation: "/fastlane/metadata/android/%locale%/%original_file_name%"
-    skip_untranslated_files: true
+  - source: /fastlane/metadata/android/en-US/full_description.txt
+    translation: /fastlane/metadata/android/%locale%/%original_file_name%
     languages_mapping:
       locale:
         et-EE: et
@@ -92,6 +78,5 @@ files:
     excluded_target_languages:
       - en
       - en-US
-
-commit_message: "chore: update translations from Crowdin"
+commit_message: 'chore: update translations from Crowdin'
 append_commit_message: false
