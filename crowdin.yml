@@ -53,12 +53,12 @@ files:
     skip_untranslated_files: true
     languages_mapping:
       locale:
-        et-EE: et
-        id-ID: id
-        sk-SK: sk
-        uk-UA: uk
+        et: et
+        id: id
+        sk: sk
+        uk: uk
         ur-PK: ur
-        vi-VN: vi
+        vi: vi
     excluded_target_languages:
       - en
       - en-US
@@ -68,12 +68,12 @@ files:
     skip_untranslated_files: true
     languages_mapping:
       locale:
-        et-EE: et
-        id-ID: id
-        sk-SK: sk
-        uk-UA: uk
+        et: et
+        id: id
+        sk: sk
+        uk: uk
         ur-PK: ur
-        vi-VN: vi
+        vi: vi
     excluded_target_languages:
       - en
       - en-US
@@ -83,12 +83,12 @@ files:
     skip_untranslated_files: true
     languages_mapping:
       locale:
-        et-EE: et
-        id-ID: id
-        sk-SK: sk
-        uk-UA: uk
+        et: et
+        id: id
+        sk: sk
+        uk: uk
         ur-PK: ur
-        vi-VN: vi
+        vi: vi
     excluded_target_languages:
       - en
       - en-US
