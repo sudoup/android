@@ -46,6 +46,7 @@ files:
         tr: tr
         uk: uk
         vi: vi
+        eu: eu
 
     excluded_target_languages:
       - en
