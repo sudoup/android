@@ -399,171 +399,162 @@ class AndroidNetworkMonitor(
 
     private fun createWifiNetworkCallbackFlow(
         detectionMethod: WifiDetectionMethod
-    ): Flow<TransportEvent> =
-        callbackFlow {
-                val onAvailable: (Network) -> Unit = { network ->
-                    // ignore onAvailable has it doesn't contain detailed network information in
-                    // capabilities
-                    Timber.d("WiFi onAvailable: $network")
+    ): Flow<TransportEvent> = callbackFlow {
+        val onAvailable: (Network) -> Unit = { network ->
+            // ignore onAvailable has it doesn't contain detailed network information in
+            // capabilities
+            Timber.d("WiFi onAvailable: $network")
+        }
+        val onLost: (Network) -> Unit = { network ->
+            Timber.d("WiFi onLost: $network")
+            trySend(TransportEvent.Lost(network))
+        }
+        val onCapabilitiesChanged: (Network, NetworkCapabilities) -> Unit = { network, caps ->
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                trySend(TransportEvent.CapabilitiesChanged(network, caps))
+            }
+        }
+
+        val onLinkPropertiesChanged: (Network, LinkProperties) -> Unit = { network, linkProps ->
+            trySend(TransportEvent.LinkPropertiesChanged(network, linkProps))
+        }
+
+        val wifiCallback =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && detectionMethod == DEFAULT) {
+                object : ConnectivityManager.NetworkCallback(FLAG_INCLUDE_LOCATION_INFO) {
+                    override fun onAvailable(network: Network) = onAvailable(network)
+
+                    override fun onLost(network: Network) = onLost(network)
+
+                    override fun onCapabilitiesChanged(
+                        network: Network,
+                        caps: NetworkCapabilities,
+                    ) = onCapabilitiesChanged(network, caps)
+
+                    override fun onLinkPropertiesChanged(
+                        network: Network,
+                        linkProperties: LinkProperties,
+                    ) = onLinkPropertiesChanged(network, linkProperties)
                 }
-                val onLost: (Network) -> Unit = { network ->
-                    Timber.d("WiFi onLost: $network")
-                    trySend(TransportEvent.Lost(network))
-                }
-                val onCapabilitiesChanged: (Network, NetworkCapabilities) -> Unit =
-                    { network, caps ->
-                        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-                            trySend(TransportEvent.CapabilitiesChanged(network, caps))
-                        }
-                    }
+            } else {
+                object : ConnectivityManager.NetworkCallback() {
+                    override fun onAvailable(network: Network) = onAvailable(network)
 
-                val onLinkPropertiesChanged: (Network, LinkProperties) -> Unit =
-                    { network, linkProps ->
-                        trySend(TransportEvent.LinkPropertiesChanged(network, linkProps))
-                    }
+                    override fun onLost(network: Network) = onLost(network)
 
-                val wifiCallback =
-                    if (
-                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && detectionMethod == DEFAULT
-                    ) {
-                        object : ConnectivityManager.NetworkCallback(FLAG_INCLUDE_LOCATION_INFO) {
-                            override fun onAvailable(network: Network) = onAvailable(network)
+                    override fun onCapabilitiesChanged(
+                        network: Network,
+                        caps: NetworkCapabilities,
+                    ) = onCapabilitiesChanged(network, caps)
 
-                            override fun onLost(network: Network) = onLost(network)
-
-                            override fun onCapabilitiesChanged(
-                                network: Network,
-                                caps: NetworkCapabilities,
-                            ) = onCapabilitiesChanged(network, caps)
-
-                            override fun onLinkPropertiesChanged(
-                                network: Network,
-                                linkProperties: LinkProperties,
-                            ) = onLinkPropertiesChanged(network, linkProperties)
-                        }
-                    } else {
-                        object : ConnectivityManager.NetworkCallback() {
-                            override fun onAvailable(network: Network) = onAvailable(network)
-
-                            override fun onLost(network: Network) = onLost(network)
-
-                            override fun onCapabilitiesChanged(
-                                network: Network,
-                                caps: NetworkCapabilities,
-                            ) = onCapabilitiesChanged(network, caps)
-
-                            override fun onLinkPropertiesChanged(
-                                network: Network,
-                                linkProperties: LinkProperties,
-                            ) = onLinkPropertiesChanged(network, linkProperties)
-                        }
-                    }
-
-                val request =
-                    NetworkRequest.Builder()
-                        .apply { addTransportType(NetworkCapabilities.TRANSPORT_WIFI) }
-                        .build()
-
-                connectivityManager?.registerNetworkCallback(request, wifiCallback)
-
-                awaitClose {
-                    runCatching { connectivityManager?.unregisterNetworkCallback(wifiCallback) }
-                        .onFailure { Timber.e(it, "Error unregistering WiFi network callback") }
+                    override fun onLinkPropertiesChanged(
+                        network: Network,
+                        linkProperties: LinkProperties,
+                    ) = onLinkPropertiesChanged(network, linkProperties)
                 }
             }
-            .onStart { emit(TransportEvent.Unknown) }
 
-    private val cellularFlow: Flow<TransportEvent> =
-        callbackFlow {
-                val onAvailable: (Network) -> Unit = { network ->
-                    Timber.d("Cellular onAvailable: $network")
-                    val caps = connectivityManager?.getNetworkCapabilities(network)
-                    if (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
-                        activeCellularNetworks.update { it + (network to caps) }
-                        trySend(TransportEvent.CapabilitiesChanged(network, caps))
-                    }
-                }
+        val request =
+            NetworkRequest.Builder()
+                .apply { addTransportType(NetworkCapabilities.TRANSPORT_WIFI) }
+                .build()
 
-                val onLost: (Network) -> Unit = { network ->
-                    Timber.d("Cellular onLost: $network")
-                    activeCellularNetworks.update { it - network }
-                    trySend(TransportEvent.Lost(network))
-                }
+        connectivityManager?.registerNetworkCallback(request, wifiCallback)
 
-                val onCapabilitiesChanged: (Network, NetworkCapabilities) -> Unit =
-                    { network, caps ->
-                        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
-                            activeCellularNetworks.update { it + (network to caps) }
-                            trySend(TransportEvent.CapabilitiesChanged(network, caps))
-                        }
-                    }
+        awaitClose {
+            runCatching { connectivityManager?.unregisterNetworkCallback(wifiCallback) }
+                .onFailure { Timber.e(it, "Error unregistering WiFi network callback") }
+        }
+    }
+        .onStart { emit(TransportEvent.Unknown) }
 
-                val cellularCallback =
-                    object : ConnectivityManager.NetworkCallback() {
-                        override fun onAvailable(network: Network) = onAvailable(network)
-
-                        override fun onLost(network: Network) = onLost(network)
-
-                        override fun onCapabilitiesChanged(
-                            network: Network,
-                            caps: NetworkCapabilities,
-                        ) = onCapabilitiesChanged(network, caps)
-                    }
-
-                val request =
-                    NetworkRequest.Builder()
-                        .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
-                        .build()
-
-                connectivityManager?.registerNetworkCallback(request, cellularCallback)
-
-                awaitClose {
-                    runCatching { connectivityManager?.unregisterNetworkCallback(cellularCallback) }
-                        .onFailure { Timber.e(it, "Error unregistering cellular network callback") }
-                }
+    private val cellularFlow: Flow<TransportEvent> = callbackFlow {
+        val onAvailable: (Network) -> Unit = { network ->
+            Timber.d("Cellular onAvailable: $network")
+            val caps = connectivityManager?.getNetworkCapabilities(network)
+            if (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+                activeCellularNetworks.update { it + (network to caps) }
+                trySend(TransportEvent.CapabilitiesChanged(network, caps))
             }
-            .onStart { emit(TransportEvent.Unknown) }
+        }
 
-    private val ethernetFlow: Flow<TransportEvent> =
-        callbackFlow {
-                val onAvailable: (Network) -> Unit = { network ->
-                    Timber.d("Ethernet onAvailable: $network")
-                }
-                val onLost: (Network) -> Unit = { network ->
-                    Timber.d("Ethernet onLost: $network")
-                    trySend(TransportEvent.Lost(network))
-                }
-                val onCapabilitiesChanged: (Network, NetworkCapabilities) -> Unit =
-                    { network, caps ->
-                        Timber.d("Ethernet onCapabilitiesChanged: $network")
-                        trySend(TransportEvent.CapabilitiesChanged(network, caps))
-                    }
+        val onLost: (Network) -> Unit = { network ->
+            Timber.d("Cellular onLost: $network")
+            activeCellularNetworks.update { it - network }
+            trySend(TransportEvent.Lost(network))
+        }
 
-                val ethernetCallback =
-                    object : ConnectivityManager.NetworkCallback() {
-                        override fun onAvailable(network: Network) = onAvailable(network)
-
-                        override fun onLost(network: Network) = onLost(network)
-
-                        override fun onCapabilitiesChanged(
-                            network: Network,
-                            caps: NetworkCapabilities,
-                        ) = onCapabilitiesChanged(network, caps)
-                    }
-
-                val request =
-                    NetworkRequest.Builder()
-                        .apply { addTransportType(NetworkCapabilities.TRANSPORT_ETHERNET) }
-                        .build()
-
-                connectivityManager?.registerNetworkCallback(request, ethernetCallback)
-
-                awaitClose {
-                    runCatching { connectivityManager?.unregisterNetworkCallback(ethernetCallback) }
-                        .onFailure { Timber.e(it, "Error unregistering ethernet network callback") }
-                }
+        val onCapabilitiesChanged: (Network, NetworkCapabilities) -> Unit = { network, caps ->
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+                activeCellularNetworks.update { it + (network to caps) }
+                trySend(TransportEvent.CapabilitiesChanged(network, caps))
             }
-            .onStart { emit(TransportEvent.Unknown) }
+        }
+
+        val cellularCallback =
+            object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) = onAvailable(network)
+
+                override fun onLost(network: Network) = onLost(network)
+
+                override fun onCapabilitiesChanged(
+                    network: Network,
+                    caps: NetworkCapabilities,
+                ) = onCapabilitiesChanged(network, caps)
+            }
+
+        val request =
+            NetworkRequest.Builder()
+                .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
+                .build()
+
+        connectivityManager?.registerNetworkCallback(request, cellularCallback)
+
+        awaitClose {
+            runCatching { connectivityManager?.unregisterNetworkCallback(cellularCallback) }
+                .onFailure { Timber.e(it, "Error unregistering cellular network callback") }
+        }
+    }
+        .onStart { emit(TransportEvent.Unknown) }
+
+    private val ethernetFlow: Flow<TransportEvent> = callbackFlow {
+        val onAvailable: (Network) -> Unit = { network ->
+            Timber.d("Ethernet onAvailable: $network")
+        }
+        val onLost: (Network) -> Unit = { network ->
+            Timber.d("Ethernet onLost: $network")
+            trySend(TransportEvent.Lost(network))
+        }
+        val onCapabilitiesChanged: (Network, NetworkCapabilities) -> Unit = { network, caps ->
+            Timber.d("Ethernet onCapabilitiesChanged: $network")
+            trySend(TransportEvent.CapabilitiesChanged(network, caps))
+        }
+
+        val ethernetCallback =
+            object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) = onAvailable(network)
+
+                override fun onLost(network: Network) = onLost(network)
+
+                override fun onCapabilitiesChanged(
+                    network: Network,
+                    caps: NetworkCapabilities,
+                ) = onCapabilitiesChanged(network, caps)
+            }
+
+        val request =
+            NetworkRequest.Builder()
+                .apply { addTransportType(NetworkCapabilities.TRANSPORT_ETHERNET) }
+                .build()
+
+        connectivityManager?.registerNetworkCallback(request, ethernetCallback)
+
+        awaitClose {
+            runCatching { connectivityManager?.unregisterNetworkCallback(ethernetCallback) }
+                .onFailure { Timber.e(it, "Error unregistering ethernet network callback") }
+        }
+    }
+        .onStart { emit(TransportEvent.Unknown) }
 
     private suspend fun getWifiDetailsByDetectionMethod(
         detectionMethod: WifiDetectionMethod?,

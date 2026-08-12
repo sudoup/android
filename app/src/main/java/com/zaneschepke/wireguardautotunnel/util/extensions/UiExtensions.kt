@@ -21,8 +21,11 @@ import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelDnsMode
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelMode
 import com.zaneschepke.wireguardautotunnel.domain.enums.WifiDetectionMethod
+import com.zaneschepke.wireguardautotunnel.domain.model.TunnelConfig
 import com.zaneschepke.wireguardautotunnel.ui.state.DisplayTunnelState
 import com.zaneschepke.wireguardautotunnel.util.DnsError
+import com.zaneschepke.wireguardautotunnel.util.FileUtils
+import java.time.Instant
 import java.util.Locale
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -150,4 +153,14 @@ fun ActiveTunnel.uptimeText(context: Context, now: Long): String? {
     val uptimeDisplay = startedAt.toUptimeDisplay(now)
 
     return context.getString(R.string.uptime_template, uptimeDisplay)
+}
+
+fun List<TunnelConfig>.asFileExportName(): Pair<String, String> {
+    return if (size == 1) {
+        val tunnel = first()
+        "${tunnel.name}.conf" to FileUtils.TEXT_MIME_TYPE
+    } else {
+        "wgtunnel_export_${Instant.now().toUserFriendlyTimestamp()}.zip" to
+            FileUtils.ZIP_FILE_MIME_TYPE
+    }
 }

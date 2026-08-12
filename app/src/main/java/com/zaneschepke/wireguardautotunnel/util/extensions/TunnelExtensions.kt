@@ -45,6 +45,13 @@ fun InterfaceSection.isAmneziaEnabled(): Boolean {
             i3,
             i4,
             i5,
+            headerProtectionKey,
+            contentPaddingAddition,
+            rekeyAfterTime,
+            rekeyTimeout,
+            rejectAfterTime,
+            keepaliveTimeout,
+            maxHandshakeAttempts,
         )
         .any { it.isNotBlank() }
 }

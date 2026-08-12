@@ -1,6 +1,11 @@
 package com.zaneschepke.wireguardautotunnel.viewmodel
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dokar.sonner.ToastType
@@ -29,6 +34,7 @@ import com.zaneschepke.wireguardautotunnel.util.LocaleUtil
 import com.zaneschepke.wireguardautotunnel.util.StringValue
 import com.zaneschepke.wireguardautotunnel.util.extensions.QuickConfig
 import com.zaneschepke.wireguardautotunnel.util.extensions.TunnelName
+import com.zaneschepke.wireguardautotunnel.util.extensions.asFileExportName
 import com.zaneschepke.wireguardautotunnel.util.extensions.asStringValue
 import com.zaneschepke.wireguardautotunnel.util.extensions.saveTunnelsUniquely
 import com.zaneschepke.wireguardautotunnel.util.network.NetworkUtils
@@ -382,14 +388,27 @@ class SharedAppViewModel(
         clearSelectedTunnels()
     }
 
-    fun exportSelectedTunnels(uri: Uri?) = intent {
+    fun exportSelectedTunnels(uri: Uri?, context: Context) = intent {
         val selectedTunnels = tunnelsUiState.value.selectedTunnels
-        val files = createConfFiles(selectedTunnels)
+        if (selectedTunnels.isEmpty()) return@intent
 
-        val shareFileName = createExportFileName(selectedTunnels.size)
+        if (uri == null && Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+            val granted =
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                ) == PackageManager.PERMISSION_GRANTED
+
+            if (!granted) {
+                Timber.d("Write storage permission not granted, requesting..")
+                postSideEffect(GlobalSideEffect.RequestWriteStoragePermission)
+                return@intent
+            }
+        }
 
         val onFailure = { action: Throwable ->
             intent {
+                Timber.e(action, "Failed to export files...")
                 postSideEffect(
                     GlobalSideEffect.Snackbar(
                         StringValue.StringResource(
@@ -403,34 +422,66 @@ class SharedAppViewModel(
             Unit
         }
 
-        fileUtils
-            .createNewShareFile(shareFileName)
-            .onSuccess {
-                try {
-                    fileUtils.zipAll(it, files).onFailure(onFailure)
-                    fileUtils.exportFile(it, uri, FileUtils.ZIP_FILE_MIME_TYPE).onFailure(onFailure)
-                } finally {
-                    if (it.exists()) it.delete()
+        val (fileName, mimeType) = selectedTunnels.asFileExportName()
+
+        if (selectedTunnels.size == 1) {
+            val data = selectedTunnels.first().quickConfig
+            val confFile =
+                fileUtils.createFile(fileName, data)
+                    ?: return@intent onFailure(IOException("Failed to create config file"))
+
+            Timber.d("Exporting single file")
+
+            fileUtils
+                .createNewShareFile(fileName)
+                .onSuccess { shareFile ->
+                    try {
+                        confFile.inputStream().use { input ->
+                            shareFile.outputStream().use { output -> input.copyTo(output) }
+                        }
+                        fileUtils
+                            .exportFile(shareFile, uri, mimeType)
+                            .onFailure(onFailure)
+                            .onSuccess {
+                                postSideEffect(
+                                    GlobalSideEffect.Snackbar(
+                                        StringValue.StringResource(R.string.export_success),
+                                        ToastType.Success,
+                                    )
+                                )
+                            }
+                    } finally {
+                        if (shareFile.exists()) shareFile.delete()
+                        if (confFile.exists()) confFile.delete()
+                    }
+                    clearSelectedTunnels()
                 }
-                postSideEffect(
-                    GlobalSideEffect.Snackbar(
-                        StringValue.StringResource(R.string.export_success),
-                        ToastType.Success,
+                .onFailure(onFailure)
+        } else {
+            // Zip
+            Timber.d("Exporting multiple files")
+            val files = createConfFiles(selectedTunnels)
+
+            fileUtils
+                .createNewShareFile(fileName)
+                .onSuccess {
+                    try {
+                        fileUtils.zipAll(it, files).onFailure(onFailure)
+                        fileUtils.exportFile(it, uri, mimeType).onFailure(onFailure)
+                    } finally {
+                        if (it.exists()) it.delete()
+                        files.forEach { f -> if (f.exists()) f.delete() }
+                    }
+
+                    postSideEffect(
+                        GlobalSideEffect.Snackbar(
+                            StringValue.StringResource(R.string.export_success),
+                            ToastType.Success,
+                        )
                     )
-                )
-                clearSelectedTunnels()
-            }
-            .onFailure(onFailure)
-    }
-
-    private fun createExportFileName(tunnelCount: Int): String {
-        val timestamp =
-            java.time.LocalDateTime.now()
-                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm"))
-
-        return when (tunnelCount) {
-            1 -> "WGTunnel_Export_$timestamp.zip"
-            else -> "WGTunnel_Export_${timestamp}_${tunnelCount}_Tunnels.zip"
+                    clearSelectedTunnels()
+                }
+                .onFailure(onFailure)
         }
     }
 

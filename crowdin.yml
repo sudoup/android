@@ -1,6 +1,4 @@
-#
-# Crowdin configuration
-#
+project_id: 911151
 preserve_hierarchy: true
 
 files:
@@ -10,11 +8,9 @@ files:
     languages_mapping:
       android_code:
         # Spanish
-        es: es
         es-ES: es
 
         # Indonesian
-        in: in
         id: in
 
         # Chinese
@@ -30,6 +26,7 @@ files:
         pt-BR: pt-rBR
         pt-PT: pt-rPT
 
+        # Other languages
         cs: cs
         de: de
         et: et
@@ -49,54 +46,29 @@ files:
         tr: tr
         uk: uk
         vi: vi
+        eu: eu
+
     excluded_target_languages:
       - en
       - en-US
 
   - source: "/fastlane/metadata/android/en-US/title.txt"
     translation: "/fastlane/metadata/android/%locale%/%original_file_name%"
-    languages_mapping:
-      locale:
-        et-EE: et
-        id-ID: id
-        sk-SK: sk
-        uk-UA: uk
-        ur-PK: ur
-        vi-VN: vi
     excluded_target_languages:
       - en
       - en-US
-
 
   - source: "/fastlane/metadata/android/en-US/short_description.txt"
     translation: "/fastlane/metadata/android/%locale%/%original_file_name%"
-    languages_mapping:
-      locale:
-        et-EE: et
-        id-ID: id
-        sk-SK: sk
-        uk-UA: uk
-        ur-PK: ur
-        vi-VN: vi
     excluded_target_languages:
       - en
       - en-US
-
 
   - source: "/fastlane/metadata/android/en-US/full_description.txt"
     translation: "/fastlane/metadata/android/%locale%/%original_file_name%"
-    languages_mapping:
-      locale:
-        et-EE: et
-        id-ID: id
-        sk-SK: sk
-        uk-UA: uk
-        ur-PK: ur
-        vi-VN: vi
     excluded_target_languages:
       - en
       - en-US
-
 
 commit_message: "chore: update translations from Crowdin"
 append_commit_message: false

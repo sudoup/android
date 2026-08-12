@@ -18,7 +18,8 @@ data class EditablePeer(
             allowedIPs = allowedIps.ifBlank { null },
             endpoint = endpoint.ifBlank { null },
             presharedKey = preSharedKey.ifBlank { null },
-            persistentKeepalive = persistentKeepalive.toIntOrNull(),
+            // Scalar or AWG 3.0 range (e.g. 22-30)
+            persistentKeepalive = persistentKeepalive.trim().ifBlank { null },
         )
 
     fun isLanExcluded(): Boolean {
@@ -40,7 +41,7 @@ data class EditablePeer(
             EditablePeer(
                 publicKey = peer.publicKey,
                 preSharedKey = peer.presharedKey ?: "",
-                persistentKeepalive = peer.persistentKeepalive?.toString() ?: "",
+                persistentKeepalive = peer.persistentKeepalive ?: "",
                 endpoint = peer.endpoint ?: "",
                 allowedIps = peer.allowedIPs ?: AllowedIpsCalculator.ALL_IPS.joinAndTrim(),
             )
