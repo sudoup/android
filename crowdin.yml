@@ -1,22 +1,32 @@
+project_id: 911151
 preserve_hierarchy: true
+
 files:
-  - source: /app/src/main/res/values/strings.xml
-    translation: /app/src/main/res/values-%android_code%/%original_file_name%
+  - source: "/app/src/main/res/values/strings.xml"
+    translation: "/app/src/main/res/values-%android_code%/%original_file_name%"
+    skip_untranslated_strings: true
     languages_mapping:
       android_code:
-        es: es
+        # Spanish
         es-ES: es
-        in: in
+
+        # Indonesian
         id: in
+
+        # Chinese
         zh-CN: zh-rCN
         zh-TW: zh-rTW
         zh-HK: zh-rHK
+
+        # Urdu
         ur-PK: ur
         ur-IN: ur-rIN
+
+        # Portuguese
         pt-BR: pt-rBR
         pt-PT: pt-rPT
-        eu: eu
-        eu-ES: eu
+
+        # Other languages
         cs: cs
         de: de
         et: et
@@ -36,47 +46,28 @@ files:
         tr: tr
         uk: uk
         vi: vi
+
     excluded_target_languages:
       - en
       - en-US
-  - source: /fastlane/metadata/android/en-US/title.txt
-    translation: /fastlane/metadata/android/%locale%/%original_file_name%
-    languages_mapping:
-      locale:
-        et: et
-        id: id
-        sk: sk
-        uk: uk
-        ur-PK: ur
-        vi: vi
+
+  - source: "/fastlane/metadata/android/en-US/title.txt"
+    translation: "/fastlane/metadata/android/%locale%/%original_file_name%"
     excluded_target_languages:
       - en
       - en-US
-  - source: /fastlane/metadata/android/en-US/short_description.txt
-    translation: /fastlane/metadata/android/%locale%/%original_file_name%
-    languages_mapping:
-      locale:
-        et: et
-        id: id
-        sk: sk
-        uk: uk
-        ur-PK: ur
-        vi: vi
+
+  - source: "/fastlane/metadata/android/en-US/short_description.txt"
+    translation: "/fastlane/metadata/android/%locale%/%original_file_name%"
     excluded_target_languages:
       - en
       - en-US
-  - source: /fastlane/metadata/android/en-US/full_description.txt
-    translation: /fastlane/metadata/android/%locale%/%original_file_name%
-    languages_mapping:
-      locale:
-        et: et
-        id: id
-        sk: sk
-        uk: uk
-        ur-PK: ur
-        vi: vi
+
+  - source: "/fastlane/metadata/android/en-US/full_description.txt"
+    translation: "/fastlane/metadata/android/%locale%/%original_file_name%"
     excluded_target_languages:
       - en
       - en-US
-commit_message: 'chore: update translations from Crowdin'
+
+commit_message: "chore: update translations from Crowdin"
 append_commit_message: false
