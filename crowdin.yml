@@ -89,6 +89,7 @@ files:
 
   - source: "/fastlane/metadata/android/en-US/short_description.txt"
     translation: "/fastlane/metadata/android/%locale%/%original_file_name%"
+    skip_untranslated_files: true
     languages_mapping:
       locale:
         fr: fr-FR
@@ -124,6 +125,7 @@ files:
 
   - source: "/fastlane/metadata/android/en-US/full_description.txt"
     translation: "/fastlane/metadata/android/%locale%/%original_file_name%"
+    skip_untranslated_files: true
     languages_mapping:
       locale:
         fr: fr-FR
