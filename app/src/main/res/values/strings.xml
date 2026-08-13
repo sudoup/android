@@ -179,6 +179,7 @@
     <string name="service_running_error">Service not running</string>
     <string name="select_all">Select all</string>
     <string name="export_success">Export success</string>
+    <string name="export_success_downloads">Exported successfully to Downloads</string>
     <string name="download">Download</string>
     <string name="check_for_update">Check for update</string>
     <string name="update_check_failed">Update check failed.</string>
