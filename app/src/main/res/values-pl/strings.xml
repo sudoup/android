@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_permission_title">Sterowanie tunelem i funkcje autotunelowania.</string>
+    <string name="app_permission_description">Sterowanie tunelem i funkcje autotunelowania.</string>
     <string name="error_file_extension">Plik nie jest w formacie .conf lub .zip</string>
     <string name="tunnels">Tunele</string>
     <string name="tunnel_mobile_data">Tunel przez mobilną transmisję danych</string>

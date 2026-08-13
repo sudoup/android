@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_permission_title">Beheert tunnels en autotunnelfuncties.</string>
+    <string name="app_permission_description">Beheert tunnels en autotunnelfuncties.</string>
     <string name="error_file_extension">Bestand is geen .conf of .zip</string>
     <string name="tunnel_mobile_data">Tunnel bij mobiele data</string>
     <string name="privacy_policy">Privacybeleid</string>
@@ -258,4 +259,9 @@
     <string name="donation_prompt_prefix">Bedankt voor het gebruik van WG Tunnel! Als het je lukt, overweeg dan alstublieft</string>
     <string name="donation_prompt_link">het project ondersteunen</string>
     <string name="donation_prompt_suffix">om het gratis te houden en te blijven verbeteren.</string>
+    <!-- AmneziaWG 3.0 -->
+    <!-- Tunnel states -->
+    <!-- Notification formatting -->
+    <!-- Informational notifications -->
+    <!-- Errors -->
 </resources>

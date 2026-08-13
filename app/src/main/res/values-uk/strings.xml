@@ -317,4 +317,8 @@
     <string name="toggle_sensitive_data_visibility">Показати/приховати конфіденційні дані</string>
     <string name="ipv6_settings">Параметри IPv6</string>
     <string name="automation">Автоматизація</string>
+    <!-- Tunnel states -->
+    <!-- Notification formatting -->
+    <!-- Informational notifications -->
+    <!-- Errors -->
 </resources>

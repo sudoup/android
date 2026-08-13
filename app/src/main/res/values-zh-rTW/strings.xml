@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_permission_title">WG Tunnel Control Bridge</string>
+    <string name="app_permission_description">WG Tunnel Control Bridge</string>
     <string name="error_file_extension">檔案類型不是 .conf 或 .zip</string>
     <string name="tunnels">隧道清單</string>
     <string name="tunnel_mobile_data">行動數據上的隧道</string>
@@ -293,5 +294,4 @@
     <!-- Notification formatting -->
     <!-- Informational notifications -->
     <!-- Errors -->
-    <string name="seamless_recovery_attempt_message"></string>
 </resources>

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_permission_title">ڈبلیو جی ٹنل کنٹرول برج</string>
+    <string name="app_permission_description">ڈبلیو جی ٹنل کنٹرول برج</string>
     <string name="error_file_extension">فائل conf یا zip نہیں ہے</string>
     <string name="tunnels">ٹنلز</string>
     <string name="tunnel_mobile_data">موبائل ڈیٹا پر ٹنل</string>
@@ -250,4 +251,9 @@
     <string name="donation_signoff">شکر گزار،</string>
     <string name="google_donation_message">بدقسمتی سے، گوگل کی پالیسیوں کی وجہ سے، اس ایپ کے پلے اسٹور ورژن میں عطیہ کے لنکس کی اجازت نہیں ہے۔ عطیہ کہاں کرنا ہے تلاش کرنے کے لیے براہ کرم پروجیکٹ کے ویب پیجز کو براؤز کریں۔</string>
     <string name="delete_active_message">فعال ٹنل کو حذف نہیں کیا جا سکتا۔</string>
+    <!-- AmneziaWG 3.0 -->
+    <!-- Tunnel states -->
+    <!-- Notification formatting -->
+    <!-- Informational notifications -->
+    <!-- Errors -->
 </resources>
