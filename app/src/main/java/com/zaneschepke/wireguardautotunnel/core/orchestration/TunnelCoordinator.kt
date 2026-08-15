@@ -220,6 +220,17 @@ class TunnelCoordinator(
         tunnelRepository.getDefaultTunnel()?.let { tunnel -> startTunnel(tunnel) }
     }
 
+    /**
+     * Rebuild the kill-switch TUN in place. HEV is rebound to the new fd by VpnService using the
+     * still-running SOCKS listener
+     */
+    suspend fun applyLockdownSettings(settings: LockdownSettings) = tunnelMutex.withLock {
+        tunnelProvider
+            .setLockDown(settings)
+            .onFailure { Timber.e(it, "Failed to apply lockdown/kill-switch settings") }
+            .getOrThrow()
+    }
+
     suspend fun toggleTunnel(
         tunnelConfig: TunnelConfig,
         source: TunnelActionSource = TunnelActionSource.USER,
