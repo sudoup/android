@@ -46,7 +46,7 @@ licensee = "1.14.1"
 lifecycleViewmodelNavigation3 = "2.11.0"
 sonner = "0.4.0"
 aboutlibraries = "15.0.4"
-core = "1.1.4"
+core = "1.1.5"
 
 [bundles]
 # Core AndroidX foundations
