@@ -31,6 +31,7 @@ import com.zaneschepke.wireguardautotunnel.util.extensions.QuickConfig
 import com.zaneschepke.wireguardautotunnel.util.extensions.TunnelName
 import com.zaneschepke.wireguardautotunnel.util.extensions.asFileExportName
 import com.zaneschepke.wireguardautotunnel.util.extensions.asStringValue
+import com.zaneschepke.wireguardautotunnel.util.extensions.isFileAccessDenied
 import com.zaneschepke.wireguardautotunnel.util.extensions.saveTunnelsUniquely
 import com.zaneschepke.wireguardautotunnel.util.network.NetworkUtils
 import io.ktor.client.HttpClient
@@ -226,7 +227,7 @@ class SharedAppViewModel(
                             val config =
                                 try {
                                     tunnel.getConfig()
-                                } catch (e: Exception) {
+                                } catch (_: Exception) {
                                     null
                                 }
                             val endpoint = config?.peers?.firstOrNull()?.host
@@ -329,10 +330,15 @@ class SharedAppViewModel(
         fileUtils
             .readConfigsFromUri(uri)
             .onSuccess { configs -> importTunnelConfigs(configs) }
-            .onFailure {
+            .onFailure { error ->
                 val message =
-                    when (it) {
-                        is IOException -> StringValue.StringResource(R.string.error_download_failed)
+                    when {
+                        // Broken Android TV and legacy pickers can return file:// without a read
+                        // grant
+                        error.isFileAccessDenied() ->
+                            StringValue.StringResource(R.string.error_no_file_explorer)
+                        error is IOException ->
+                            StringValue.StringResource(R.string.error_download_failed)
                         else -> StringValue.StringResource(R.string.error_file_extension)
                     }
                 postSideEffect(GlobalSideEffect.Snackbar(message, ToastType.Error))
