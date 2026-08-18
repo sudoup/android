@@ -213,20 +213,19 @@ class FileUtils(private val context: Context, private val ioDispatcher: Coroutin
     }
 
     private fun getFileName(uri: Uri): String {
-        return getFileNameByCursor(uri) ?: NumberUtils.generateRandomTunnelName()
+        return getFileNameByCursor(uri)
+            ?: uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
+            ?: NumberUtils.generateRandomTunnelName()
     }
 
     private fun getNameFromFileName(fileName: String): String {
-        return fileName.take(fileName.lastIndexOf('.'))
+        return fileName.substringBeforeLast(delimiter = '.', missingDelimiterValue = fileName)
     }
 
     private fun getFileExtensionFromFileName(fileName: String): String? {
-        return try {
-            fileName.substring(fileName.lastIndexOf('.'))
-        } catch (e: Exception) {
-            Timber.e(e)
-            null
-        }
+        val dot = fileName.lastIndexOf('.')
+        if (dot < 0 || dot == fileName.lastIndex) return null
+        return fileName.substring(dot)
     }
 
     private fun getFileNameByCursor(uri: Uri): String? {

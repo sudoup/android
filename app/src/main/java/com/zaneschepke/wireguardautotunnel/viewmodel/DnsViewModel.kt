@@ -6,6 +6,8 @@ import com.zaneschepke.networkmonitor.NetworkMonitor
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.core.orchestration.DnsSettingsCoordinator
 import com.zaneschepke.wireguardautotunnel.domain.enums.BootstrapDnsProtocol
+import com.zaneschepke.wireguardautotunnel.domain.enums.ForeignDnsPolicy
+import com.zaneschepke.wireguardautotunnel.domain.enums.SplitDnsSuffixTarget
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelDnsMode
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelDnsProtocol
 import com.zaneschepke.wireguardautotunnel.domain.repository.DnsSettingsRepository
@@ -92,13 +94,13 @@ class DnsViewModel(
         }
 
         val usesTunnelDns =
-            settings.tunnelDnsMode == TunnelDnsMode.Split &&
+            settings.tunnelDnsMode.isSplitMode() &&
                 settings.tunnelDnsProtocol == TunnelDnsProtocol.Plain &&
                 settings.useTunnelDnsServersInSplit
 
         if (
             settings.tunnelDnsMode == TunnelDnsMode.Encrypted ||
-                settings.tunnelDnsMode == TunnelDnsMode.Split
+                settings.tunnelDnsMode.isSplitMode()
         ) {
             if (!usesTunnelDns) {
                 when (
@@ -123,7 +125,7 @@ class DnsViewModel(
             }
         }
 
-        if (settings.tunnelDnsMode == TunnelDnsMode.Split) {
+        if (settings.tunnelDnsMode.isSplitMode()) {
             when (
                 val r =
                     DnsValidator.validateLocalSuffixes(
@@ -168,8 +170,8 @@ class DnsViewModel(
                         else -> null
                     },
                 localSuffixes =
-                    when (settings.tunnelDnsMode) {
-                        TunnelDnsMode.Split ->
+                    when {
+                        settings.tunnelDnsMode.isSplitMode() ->
                             DnsValidator.normalizeLocalSuffixes(settings.localSuffixes).ifEmpty {
                                 null
                             }
@@ -240,6 +242,14 @@ class DnsViewModel(
 
     fun setUseTunnelDnsServersInSplit(to: Boolean) = intent {
         reduce { state.copy(dnsSettings = state.dnsSettings.copy(useTunnelDnsServersInSplit = to)) }
+    }
+
+    fun setForeignDnsPolicy(policy: ForeignDnsPolicy) = intent {
+        reduce { state.copy(dnsSettings = state.dnsSettings.copy(foreignDnsPolicy = policy)) }
+    }
+
+    fun setSplitSuffixTarget(target: SplitDnsSuffixTarget) = intent {
+        reduce { state.copy(dnsSettings = state.dnsSettings.copy(splitSuffixTarget = target)) }
     }
 
     suspend fun postSideEffect(globalSideEffect: GlobalSideEffect) {

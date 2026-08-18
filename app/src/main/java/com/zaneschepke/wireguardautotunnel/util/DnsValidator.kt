@@ -195,7 +195,7 @@ object DnsValidator {
     }
 
     fun validateLocalSuffixes(mode: TunnelDnsMode, input: String?): Result {
-        if (mode != TunnelDnsMode.Split) return Result.Valid
+        if (!mode.isSplitMode()) return Result.Valid
 
         val normalized = normalizeLocalSuffixes(input)
         if (normalized.isEmpty()) {

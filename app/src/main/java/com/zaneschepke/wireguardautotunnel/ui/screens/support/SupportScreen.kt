@@ -53,17 +53,23 @@ import com.zaneschepke.wireguardautotunnel.ui.screens.support.components.Permiss
 import com.zaneschepke.wireguardautotunnel.ui.screens.support.components.UpdateDialog
 import com.zaneschepke.wireguardautotunnel.util.Constants
 import com.zaneschepke.wireguardautotunnel.util.StringValue
+import com.zaneschepke.wireguardautotunnel.util.extensions.canInstallPackages
 import com.zaneschepke.wireguardautotunnel.util.extensions.launchPlayStoreListing
 import com.zaneschepke.wireguardautotunnel.util.extensions.launchPlayStoreReview
 import com.zaneschepke.wireguardautotunnel.util.extensions.launchSupportEmail
 import com.zaneschepke.wireguardautotunnel.util.extensions.openWebUrl
+import com.zaneschepke.wireguardautotunnel.viewmodel.SharedAppViewModel
 import com.zaneschepke.wireguardautotunnel.viewmodel.SupportViewModel
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.viewmodel.koinActivityViewModel
 import org.orbitmvi.orbit.compose.collectAsState
 
 @Composable
-fun SupportScreen(viewModel: SupportViewModel = koinViewModel()) {
+fun SupportScreen(
+    viewModel: SupportViewModel = koinViewModel(),
+    sharedViewModel: SharedAppViewModel = koinActivityViewModel(),
+) {
     val context = LocalContext.current
     val navController = LocalNavController.current
     val isTv = LocalIsAndroidTV.current
@@ -72,6 +78,21 @@ fun SupportScreen(viewModel: SupportViewModel = koinViewModel()) {
     val supportState by viewModel.collectAsState()
 
     val clipboardManager = rememberClipboardHelper()
+
+    var showPermissionDialog by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        sharedViewModel.supportAutoUpdateRequests.collect { startDownload ->
+            if (BuildConfig.DEBUG) return@collect
+            if (BuildConfig.FLAVOR != Constants.STANDALONE_FLAVOR) return@collect
+            if (startDownload && !context.canInstallPackages()) {
+                viewModel.checkForStandaloneUpdate(startDownloadIfAvailable = false)
+                showPermissionDialog = true
+            } else {
+                viewModel.checkForStandaloneUpdate(startDownloadIfAvailable = startDownload)
+            }
+        }
+    }
 
     val issuesUrl = stringResource(R.string.github_url)
     val izzyUrl = stringResource(R.string.fdroid_url)
@@ -97,8 +118,6 @@ fun SupportScreen(viewModel: SupportViewModel = koinViewModel()) {
             focusRequester.requestFocus()
         }
     }
-
-    var showPermissionDialog by rememberSaveable { mutableStateOf(false) }
 
     if (supportState.appUpdate != null) {
         UpdateDialog(

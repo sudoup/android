@@ -187,6 +187,8 @@
     <string name="latest_installed">You are already running the latest version.</string>
     <string name="update_download_failed">Update download failed.</string>
     <string name="update_available">Update Available!</string>
+    <string name="update">Update</string>
+    <string name="update_notification_message">Version %1$s is available.</string>
     <string name="download_and_install">Download and Install</string>
     <string name="permission_required">Permission Required</string>
     <string name="install_updated_permission">This app needs permission to install updates.</string>
@@ -582,16 +584,27 @@
     <string name="seamless_recovery_attempt_title">Seamless Recovery</string>
     <string name="seamless_recovery_attempt_message">Connection issue detected. Attempting automatic recovery.</string>
     <string name="local_domain_suffixes">Local domain suffixes</string>
+    <string name="domain_suffixes">Domain suffixes</string>
     <string name="encrypted_dns">Encrypted DNS</string>
     <string name="split_dns">Split DNS</string>
     <string name="system_dns_only">System DNS only</string>
     <string name="default_dns_desc">Standard plain DNS through the tunnel using the tunnel DNS servers</string>
     <string name="encrypted_dns_desc">Encrypted DNS through the tunnel using a custom server</string>
-    <string name="split_dns_desc">Local prefix domains are split to system DNS while everything else is tunneled via customizable options</string>
+    <string name="split_dns_desc">Split resolution by domain suffix between system DNS and tunnel DNS</string>
     <string name="system_dns_only_desc">All DNS queries are send to the system\'s DNS servers and bypass the tunnel</string>
     <string name="protocol">Protocol</string>
     <string name="tunnel_dns_mode">Tunnel DNS mode</string>
     <string name="tunnel_dns">Tunnel DNS</string>
     <string name="use_tunnel_dns_servers">Use tunnel DNS servers</string>
+    <string name="split_suffix_target">Route suffixes via</string>
+    <string name="split_suffix_target_system">System DNS</string>
+    <string name="split_suffix_target_tunnel">Tunnel DNS</string>
+    <string name="split_suffix_target_desc">Where suffixes should be routed. Everything else is routed via tunnel DNS</string>
+    <string name="private_dns_enabled_warning">Private DNS is enabled. Disable it for tunnel DNS to work properly</string>
+    <string name="foreign_dns_policy">Foreign DNS policy</string>
+    <string name="foreign_dns_policy_desc">How to handle plain DNS request sent to a server different than the tunnel\'s DNS servers</string>
+    <string name="foreign_dns_redirect">Redirect</string>
+    <string name="foreign_dns_block">Block</string>
+    <string name="foreign_dns_allow">Allow</string>
     <string name="error_config_missing_dns">Tunnel %1$s is missing DNS servers that are required for your current app settings</string>
 </resources>

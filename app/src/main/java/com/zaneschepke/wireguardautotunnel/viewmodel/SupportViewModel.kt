@@ -11,40 +11,49 @@ import com.zaneschepke.wireguardautotunnel.domain.sideeffect.GlobalSideEffect
 import com.zaneschepke.wireguardautotunnel.ui.state.SupportUiState
 import com.zaneschepke.wireguardautotunnel.util.Constants
 import com.zaneschepke.wireguardautotunnel.util.StringValue
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.withContext
 import org.orbitmvi.orbit.OrbitContainerHost
 import org.orbitmvi.orbit.viewmodel.orbitContainer
 
 class SupportViewModel(
     private val updateRepository: UpdateRepository,
-    private val mainDispatcher: CoroutineDispatcher,
     private val globalEffectRepository: GlobalEffectRepository,
 ) : OrbitContainerHost<SupportUiState, SupportUiState, Nothing>, ViewModel() {
 
     override val container = orbitContainer<SupportUiState, Nothing>(SupportUiState())
 
-    fun checkForStandaloneUpdate() = intent {
-        postSideEffect(
-            GlobalSideEffect.Snackbar(
-                StringValue.StringResource(R.string.checking_for_update),
-                ToastType.Info,
+    fun checkForStandaloneUpdate(startDownloadIfAvailable: Boolean = false) = intent {
+        if (!startDownloadIfAvailable) {
+            postSideEffect(
+                GlobalSideEffect.Snackbar(
+                    StringValue.StringResource(R.string.checking_for_update),
+                    ToastType.Info,
+                )
             )
-        )
-        reduce { state.copy(isLoading = true) }
+        }
+        reduce { state.copy(isLoading = true, downloadProgress = 0f) }
         updateRepository
             .checkForUpdate(BuildConfig.VERSION_NAME)
             .onSuccess { update ->
-                if (update == null) {
-                    postSideEffect(
-                        GlobalSideEffect.Snackbar(
-                            StringValue.StringResource(R.string.latest_installed),
-                            ToastType.Info,
+                val sanitized = update.sanitized()
+                if (sanitized == null) {
+                    reduce { state.copy(isLoading = false, appUpdate = null) }
+                    if (!startDownloadIfAvailable) {
+                        postSideEffect(
+                            GlobalSideEffect.Snackbar(
+                                StringValue.StringResource(R.string.latest_installed),
+                                ToastType.Info,
+                            )
                         )
-                    )
-                } else reduce { state.copy(appUpdate = update.sanitized()) }
+                    }
+                } else {
+                    reduce { state.copy(appUpdate = sanitized, isLoading = false) }
+                    if (startDownloadIfAvailable) {
+                        downloadAndInstall()
+                    }
+                }
             }
             .onFailure {
+                reduce { state.copy(isLoading = false) }
                 postSideEffect(
                     GlobalSideEffect.Snackbar(
                         StringValue.StringResource(R.string.update_check_failed),
@@ -52,7 +61,6 @@ class SupportViewModel(
                     )
                 )
             }
-        reduce { state.copy(isLoading = false) }
     }
 
     suspend fun postSideEffect(globalSideEffect: GlobalSideEffect) {
@@ -68,28 +76,41 @@ class SupportViewModel(
             if (BuildConfig.VERSION_NAME.contains("nightly")) {
                 "nightly"
             } else {
-                state.appUpdate?.version?.removePrefix("v")?.trim() ?: ""
+                state.appUpdate?.version?.removePrefix("v")?.trim().orEmpty()
             }
         val url = "${Constants.BASE_RELEASE_URL}$version".trim()
         postSideEffect(GlobalSideEffect.LaunchUrl(url))
     }
 
-    fun dismissUpdate() = intent { reduce { state.copy(appUpdate = null) } }
+    fun dismissUpdate() = intent {
+        reduce { state.copy(appUpdate = null, isLoading = false, downloadProgress = 0f) }
+    }
 
     fun downloadAndInstall() = intent {
-        if (
-            state.appUpdate == null ||
-                state.appUpdate?.apkUrl == null ||
-                state.appUpdate?.apkFileName == null
-        )
+        val update = state.appUpdate
+        val apkUrl = update?.apkUrl
+        val apkFileName = update?.apkFileName
+        if (update == null || apkUrl.isNullOrBlank() || apkFileName.isNullOrBlank()) {
+            postSideEffect(
+                GlobalSideEffect.Snackbar(
+                    StringValue.StringResource(R.string.update_download_failed),
+                    ToastType.Error,
+                )
+            )
             return@intent
-        reduce { state.copy(isLoading = true) }
+        }
+
+        reduce { state.copy(isLoading = true, downloadProgress = 0f) }
         updateRepository
-            .downloadApk(state.appUpdate!!.apkUrl!!, state.appUpdate!!.apkFileName!!) { progress ->
-                handleProgress(progress)
+            .downloadApk(apkUrl, apkFileName) { progress ->
+                intent { reduce { state.copy(downloadProgress = progress) } }
             }
-            .onSuccess { postSideEffect(GlobalSideEffect.InstallApk(it)) }
+            .onSuccess { file ->
+                reduce { state.copy(isLoading = false, downloadProgress = 1f) }
+                postSideEffect(GlobalSideEffect.InstallApk(file))
+            }
             .onFailure {
+                reduce { state.copy(isLoading = false) }
                 postSideEffect(
                     GlobalSideEffect.Snackbar(
                         StringValue.StringResource(R.string.update_download_failed),
@@ -97,10 +118,6 @@ class SupportViewModel(
                     )
                 )
             }
-    }
-
-    private fun handleProgress(progress: Float) = intent {
-        withContext(mainDispatcher) { reduce { state.copy(downloadProgress = progress) } }
     }
 
     companion object {

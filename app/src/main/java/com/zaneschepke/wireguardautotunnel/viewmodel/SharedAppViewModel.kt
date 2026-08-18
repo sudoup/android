@@ -31,6 +31,7 @@ import com.zaneschepke.wireguardautotunnel.util.extensions.QuickConfig
 import com.zaneschepke.wireguardautotunnel.util.extensions.TunnelName
 import com.zaneschepke.wireguardautotunnel.util.extensions.asFileExportName
 import com.zaneschepke.wireguardautotunnel.util.extensions.asStringValue
+import com.zaneschepke.wireguardautotunnel.util.extensions.isFileAccessDenied
 import com.zaneschepke.wireguardautotunnel.util.extensions.saveTunnelsUniquely
 import com.zaneschepke.wireguardautotunnel.util.network.NetworkUtils
 import io.ktor.client.HttpClient
@@ -43,7 +44,9 @@ import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.firstOrNull
@@ -71,6 +74,13 @@ class SharedAppViewModel(
 ) : OrbitContainerHost<GlobalAppUiState, GlobalAppUiState, LocalSideEffect>, ViewModel() {
 
     val globalSideEffect = globalEffectRepository.flow
+
+    private val _supportAutoUpdateRequests = MutableSharedFlow<Boolean>(extraBufferCapacity = 1)
+    val supportAutoUpdateRequests = _supportAutoUpdateRequests.asSharedFlow()
+
+    fun requestSupportAutoUpdate(startDownload: Boolean) {
+        _supportAutoUpdateRequests.tryEmit(startDownload)
+    }
 
     val tunnelsUiState =
         combine(
@@ -226,7 +236,7 @@ class SharedAppViewModel(
                             val config =
                                 try {
                                     tunnel.getConfig()
-                                } catch (e: Exception) {
+                                } catch (_: Exception) {
                                     null
                                 }
                             val endpoint = config?.peers?.firstOrNull()?.host
@@ -329,10 +339,15 @@ class SharedAppViewModel(
         fileUtils
             .readConfigsFromUri(uri)
             .onSuccess { configs -> importTunnelConfigs(configs) }
-            .onFailure {
+            .onFailure { error ->
                 val message =
-                    when (it) {
-                        is IOException -> StringValue.StringResource(R.string.error_download_failed)
+                    when {
+                        // Broken Android TV and legacy pickers can return file:// without a read
+                        // grant
+                        error.isFileAccessDenied() ->
+                            StringValue.StringResource(R.string.error_no_file_explorer)
+                        error is IOException ->
+                            StringValue.StringResource(R.string.error_download_failed)
                         else -> StringValue.StringResource(R.string.error_file_extension)
                     }
                 postSideEffect(GlobalSideEffect.Snackbar(message, ToastType.Error))

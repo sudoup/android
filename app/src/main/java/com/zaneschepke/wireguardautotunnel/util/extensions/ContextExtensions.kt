@@ -122,6 +122,10 @@ fun Context.launchLocationServicesSettings(): Result<Unit> {
     }
 }
 
+fun Context.launchNetworkAndInternetSettings(): Result<Unit> = runCatching {
+    startActivity(Intent(Settings.ACTION_WIRELESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+}
+
 fun Context.launchAppSettings() {
     kotlin
         .runCatching {
