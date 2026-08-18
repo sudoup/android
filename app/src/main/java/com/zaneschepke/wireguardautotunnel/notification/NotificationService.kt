@@ -49,6 +49,8 @@ interface NotificationService {
 
     fun show(notificationId: Int, notification: Notification)
 
+    fun showUpdateAvailable(version: String)
+
     companion object {
         const val VPN_GROUP_KEY = "VPN_GROUP"
         const val PROXY_GROUP_KEY = "PROXY_GROUP"
@@ -62,6 +64,9 @@ interface NotificationService {
         const val PROXY_NOTIFICATION_ID = 103
         const val TUNNEL_ERROR_NOTIFICATION_ID = 101
         const val TUNNEL_MESSAGES_NOTIFICATION_ID = 102
+        const val UPDATE_AVAILABLE_NOTIFICATION_ID = 125
         const val EXTRA_ID = "id"
+        const val EXTRA_OPEN_SUPPORT = "open_support"
+        const val EXTRA_AUTO_UPDATE = "auto_update"
     }
 }

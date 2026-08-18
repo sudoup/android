@@ -44,7 +44,9 @@ import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.firstOrNull
@@ -72,6 +74,13 @@ class SharedAppViewModel(
 ) : OrbitContainerHost<GlobalAppUiState, GlobalAppUiState, LocalSideEffect>, ViewModel() {
 
     val globalSideEffect = globalEffectRepository.flow
+
+    private val _supportAutoUpdateRequests = MutableSharedFlow<Boolean>(extraBufferCapacity = 1)
+    val supportAutoUpdateRequests = _supportAutoUpdateRequests.asSharedFlow()
+
+    fun requestSupportAutoUpdate(startDownload: Boolean) {
+        _supportAutoUpdateRequests.tryEmit(startDownload)
+    }
 
     val tunnelsUiState =
         combine(

@@ -18,7 +18,10 @@ import com.zaneschepke.wireguardautotunnel.MainActivity
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.core.broadcast.NotificationActionReceiver
 import com.zaneschepke.wireguardautotunnel.domain.enums.NotificationAction
+import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.EXTRA_AUTO_UPDATE
 import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.EXTRA_ID
+import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.EXTRA_OPEN_SUPPORT
+import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.UPDATE_AVAILABLE_NOTIFICATION_ID
 import com.zaneschepke.wireguardautotunnel.util.StringValue
 
 class AndroidNotificationService(override val context: Context) : NotificationService {
@@ -136,6 +139,38 @@ class AndroidNotificationService(override val context: Context) : NotificationSe
             }
             notify(notificationId, notification)
         }
+    }
+
+    override fun showUpdateAvailable(version: String) {
+        val openIntent =
+            PendingIntent.getActivity(
+                context,
+                UPDATE_AVAILABLE_NOTIFICATION_ID,
+                Intent(context, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    putExtra(EXTRA_OPEN_SUPPORT, true)
+                    putExtra(EXTRA_AUTO_UPDATE, true)
+                },
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+        val updateAction =
+            Action.Builder(
+                    R.drawable.ic_notification,
+                    context.getString(R.string.update),
+                    openIntent,
+                )
+                .build()
+        val notification =
+            NotificationChannels.App.asBuilder()
+                .setContentTitle(context.getString(R.string.update_available))
+                .setContentText(context.getString(R.string.update_notification_message, version))
+                .setContentIntent(openIntent)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setAutoCancel(true)
+                .setOnlyAlertOnce(true)
+                .addAction(updateAction)
+                .build()
+        show(UPDATE_AVAILABLE_NOTIFICATION_ID, notification)
     }
 
     private fun NotificationChannels.asBuilder(): Builder {

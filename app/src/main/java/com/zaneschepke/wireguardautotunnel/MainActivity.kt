@@ -86,6 +86,10 @@ import com.zaneschepke.wireguardautotunnel.domain.model.TunnelConfig
 import com.zaneschepke.wireguardautotunnel.domain.repository.AppStateRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.TunnelRepository
 import com.zaneschepke.wireguardautotunnel.domain.sideeffect.GlobalSideEffect
+import com.zaneschepke.wireguardautotunnel.notification.NotificationService
+import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.EXTRA_AUTO_UPDATE
+import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.EXTRA_OPEN_SUPPORT
+import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.UPDATE_AVAILABLE_NOTIFICATION_ID
 import com.zaneschepke.wireguardautotunnel.service.tile.TunnelTileRefresher
 import com.zaneschepke.wireguardautotunnel.ui.LocalIsAndroidTV
 import com.zaneschepke.wireguardautotunnel.ui.LocalNavController
@@ -172,11 +176,13 @@ class MainActivity : AppCompatActivity() {
     private val appDatabase: AppDatabase by inject()
     private val networkMonitor: NetworkMonitor by inject()
     private val fileExportCoordinator: FileExportCoordinator by inject()
+    private val notificationService: NotificationService by inject()
 
     val viewModel by viewModel<SharedAppViewModel>()
     private lateinit var roomBackup: RoomBackup
 
     private val snackbarChannel = Channel<GlobalSideEffect.Snackbar>(Channel.UNLIMITED)
+    private val supportDeepLinkChannel = Channel<Boolean>(Channel.BUFFERED)
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -212,6 +218,9 @@ class MainActivity : AppCompatActivity() {
 
             val toaster = rememberToasterState()
             var showVpnPermissionDialog by remember { mutableStateOf(false) }
+            var coldStartAutoUpdate by remember {
+                mutableStateOf(intent?.getBooleanExtra(EXTRA_AUTO_UPDATE, false) == true)
+            }
             var vpnPermissionDenied by remember { mutableStateOf(false) }
             var requestingTunnelMode by remember {
                 mutableStateOf<Pair<TunnelMode?, TunnelConfig?>>(Pair(null, null))
@@ -282,6 +291,7 @@ class MainActivity : AppCompatActivity() {
             val startingStack = buildList {
                 add(Route.Tunnels)
                 if (intent?.action == Intent.ACTION_APPLICATION_PREFERENCES) add(Route.Settings)
+                if (intent?.getBooleanExtra(EXTRA_OPEN_SUPPORT, false) == true) add(Route.Support)
                 if (uiState.pinLockEnabled) add(Route.Lock)
             }
 
@@ -316,6 +326,23 @@ class MainActivity : AppCompatActivity() {
                         requestingTunnelMode = Pair(null, null)
                     },
                 )
+
+            LaunchedEffect(uiState.isAppLoaded, coldStartAutoUpdate) {
+                if (!uiState.isAppLoaded || !coldStartAutoUpdate) return@LaunchedEffect
+                coldStartAutoUpdate = false
+                notificationService.remove(UPDATE_AVAILABLE_NOTIFICATION_ID)
+                viewModel.requestSupportAutoUpdate(startDownload = true)
+            }
+
+            LaunchedEffect(Unit) {
+                for (autoUpdate in supportDeepLinkChannel) {
+                    notificationService.remove(UPDATE_AVAILABLE_NOTIFICATION_ID)
+                    if (previousRoute !is Route.Support) {
+                        navController.push(Route.Support)
+                    }
+                    viewModel.requestSupportAutoUpdate(startDownload = autoUpdate)
+                }
+            }
 
             LaunchedEffect(Unit) {
                 viewModel.globalSideEffect.collectLatest { sideEffect ->
@@ -825,6 +852,15 @@ class MainActivity : AppCompatActivity() {
         setIntent(intent)
         handleConfigFileIntent(intent)
         handleWgDeepLinkIntent(intent)
+        enqueueSupportDeepLink(intent)
+    }
+
+    private fun enqueueSupportDeepLink(intent: Intent?) {
+        if (intent?.getBooleanExtra(EXTRA_OPEN_SUPPORT, false) != true) return
+        val autoUpdate = intent.getBooleanExtra(EXTRA_AUTO_UPDATE, false)
+        intent.removeExtra(EXTRA_OPEN_SUPPORT)
+        intent.removeExtra(EXTRA_AUTO_UPDATE)
+        supportDeepLinkChannel.trySend(autoUpdate)
     }
 
     private fun handleConfigFileIntent(intent: Intent?) {

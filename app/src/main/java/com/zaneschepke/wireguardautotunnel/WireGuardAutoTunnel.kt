@@ -10,6 +10,7 @@ import com.zaneschepke.wireguardautotunnel.core.orchestration.AppBoostrapCoordin
 import com.zaneschepke.wireguardautotunnel.core.orchestration.StartupCoordinator
 import com.zaneschepke.wireguardautotunnel.core.orchestration.TunnelCoordinator
 import com.zaneschepke.wireguardautotunnel.core.tunnel.TunnelProvider
+import com.zaneschepke.wireguardautotunnel.core.worker.UpdateCheckWorker
 import com.zaneschepke.wireguardautotunnel.di.Dispatcher
 import com.zaneschepke.wireguardautotunnel.di.Scope
 import com.zaneschepke.wireguardautotunnel.di.appModule
@@ -20,6 +21,7 @@ import com.zaneschepke.wireguardautotunnel.di.networkModule
 import com.zaneschepke.wireguardautotunnel.di.tunnelBackendProviderModule
 import com.zaneschepke.wireguardautotunnel.di.workerModule
 import com.zaneschepke.wireguardautotunnel.notification.NotificationService
+import com.zaneschepke.wireguardautotunnel.util.Constants
 import com.zaneschepke.wireguardautotunnel.util.ReleaseTree
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -107,6 +109,10 @@ class WireGuardAutoTunnel : Application(), KoinComponent {
 
         // for notifications
         dispatcher.bind(applicationScope, provider.events, tunnelCoordinator.errors)
+
+        if (BuildConfig.FLAVOR == Constants.STANDALONE_FLAVOR) {
+            UpdateCheckWorker.start(this)
+        }
 
         applicationScope.launch(ioDispatcher) {
             boostrapCoordinator.bootstrap(this@WireGuardAutoTunnel)
