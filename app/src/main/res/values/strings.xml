@@ -601,10 +601,10 @@
     <string name="split_suffix_target_tunnel">Tunnel DNS</string>
     <string name="split_suffix_target_desc">Where suffixes should be routed. Everything else is routed via tunnel DNS</string>
     <string name="private_dns_enabled_warning">Private DNS is enabled. Disable it for tunnel DNS to work properly</string>
-    <string name="foreign_dns_policy">Foreign DNS policy</string>
-    <string name="foreign_dns_policy_desc">How to handle plain DNS request sent to a server different than the tunnel\'s DNS servers</string>
-    <string name="foreign_dns_redirect">Redirect</string>
-    <string name="foreign_dns_block">Block</string>
-    <string name="foreign_dns_allow">Allow</string>
+    <string name="transit_dns_policy">Transit DNS requests</string>
+    <string name="transit_dns_policy_desc">How to handle plain DNS request sent to a server different than the tunnel\'s DNS servers</string>
+    <string name="transit_dns_redirect">Redirect</string>
+    <string name="transit_dns_block">Block</string>
+    <string name="transit_dns_allow">Allow</string>
     <string name="error_config_missing_dns">Tunnel %1$s is missing DNS servers that are required for your current app settings</string>
 </resources>
