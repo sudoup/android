@@ -324,7 +324,7 @@ fun DnsSettingsScreen(
                         }
                     }
                     LabeledDropdown(
-                        title = stringResource(R.string.foreign_dns_policy),
+                        title = stringResource(R.string.transit_dns_policy),
                         leading = { Icon(Icons.Outlined.Dns, contentDescription = null) },
                         currentValue = uiState.dnsSettings.foreignDnsPolicy,
                         onSelected = { selected ->
@@ -334,7 +334,7 @@ fun DnsSettingsScreen(
                         optionToString = { (it ?: ForeignDnsPolicy.Redirect).asString(context) },
                     )
                     DescriptionText(
-                        stringResource(R.string.foreign_dns_policy_desc),
+                        stringResource(R.string.transit_dns_policy_desc),
                         modifier = Modifier.padding(horizontal = 16.dp),
                     )
                 }
