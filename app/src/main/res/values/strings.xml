@@ -599,7 +599,8 @@
     <string name="split_suffix_target">Route suffixes via</string>
     <string name="split_suffix_target_system">System DNS</string>
     <string name="split_suffix_target_tunnel">Tunnel DNS</string>
-    <string name="split_suffix_target_desc">Where suffixes should be routed. Everything else is routed via tunnel DNS</string>
+    <string name="split_suffix_target_desc_system">Domain suffixes routed to system DNS. All other queries use tunnel DNS.</string>
+    <string name="split_suffix_target_desc_tunnel">Domain suffixes routed to tunnel DNS. All other queries use system DNS.</string>
     <string name="private_dns_enabled_warning">Private DNS is enabled. Disable it for tunnel DNS to work properly</string>
     <string name="transit_dns_policy">Transit DNS requests</string>
     <string name="transit_dns_policy_desc">How to handle plain DNS request sent to a server different than the tunnel\'s DNS servers</string>
