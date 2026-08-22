@@ -15,7 +15,10 @@ enum class SplitDnsSuffixTarget(val value: Int) {
         }
 
     fun asDescription(context: Context): String =
-        context.getString(R.string.split_suffix_target_desc)
+        when (this) {
+            System -> context.getString(R.string.split_suffix_target_desc_system)
+            Tunnel -> context.getString(R.string.split_suffix_target_desc_tunnel)
+        }
 
     fun toCore(): DnsSplitMode =
         when (this) {
