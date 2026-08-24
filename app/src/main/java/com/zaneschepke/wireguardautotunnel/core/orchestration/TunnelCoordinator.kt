@@ -1,6 +1,8 @@
 package com.zaneschepke.wireguardautotunnel.core.orchestration
 
+import com.dokar.sonner.ToastType
 import com.wgtunnel.backend.model.BackendMode
+import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.core.event.TunnelErrorEvent
 import com.zaneschepke.wireguardautotunnel.core.tunnel.TunnelProvider
 import com.zaneschepke.wireguardautotunnel.data.repository.RoomDnsSettingsRepository
@@ -15,11 +17,14 @@ import com.zaneschepke.wireguardautotunnel.domain.model.ProxySettings
 import com.zaneschepke.wireguardautotunnel.domain.model.TunnelConfig
 import com.zaneschepke.wireguardautotunnel.domain.repository.AppStateRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.GeneralSettingRepository
+import com.zaneschepke.wireguardautotunnel.domain.repository.GlobalEffectRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.LockdownSettingsRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.MonitoringSettingsRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.ProxySettingsRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.TunnelRepository
+import com.zaneschepke.wireguardautotunnel.domain.sideeffect.GlobalSideEffect
 import com.zaneschepke.wireguardautotunnel.service.ServiceManager
+import com.zaneschepke.wireguardautotunnel.util.StringValue
 import com.zaneschepke.wireguardautotunnel.util.extensions.toTunnelDnsConfigOrNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -45,6 +50,7 @@ class TunnelCoordinator(
     private val tunnelRepository: TunnelRepository,
     dnsSettingsRepository: RoomDnsSettingsRepository,
     monitoringSettingsRepository: MonitoringSettingsRepository,
+    globalEffectRepository: GlobalEffectRepository,
     proxyRepository: ProxySettingsRepository,
     lockdownModeRepository: LockdownSettingsRepository,
     private val appStateRepository: AppStateRepository,
@@ -94,28 +100,25 @@ class TunnelCoordinator(
     init {
         scope.launch {
             combine(
-                    runtimeSettingsSnapshot.filterNotNull(),
+                    runtimeSettingsSnapshot,
                     tunnelRepository.userTunnelsFlow,
                     backendStatus,
                 ) { snapshot, tunnels, status ->
                     val activeIds = status.activeTunnels.keys
                     LiveTunnelFeatureKey(
-                        activeIds = activeIds,
                         statsEnabled = snapshot.monitoring.tunnelStatisticsEnabled,
                         statsInterval = snapshot.monitoring.tunnelStatisticsPollInterval,
                         seamlessRecovery = snapshot.general.seamlessRecoveryEnabled,
                         bounceDelaySec = snapshot.general.seamlessRecoveryBounceDelaySec,
                         perTunnel =
-                            tunnels
-                                .filter { it.id in activeIds }
-                                .associate { tun ->
-                                    tun.id to
-                                        Triple(
-                                            tun.isDDNSTunnel,
-                                            tun.isIpv6Preferred,
-                                            tun.ipv6RestoreEnabled,
-                                        )
-                                },
+                            tunnels.associate { tun ->
+                                tun.id to
+                                    Triple(
+                                        tun.isDDNSTunnel,
+                                        tun.isIpv6Preferred,
+                                        tun.ipv6RestoreEnabled,
+                                    )
+                            },
                     ) to
                         LiveTunnelFeaturePayload(
                             general = snapshot.general,
@@ -141,13 +144,23 @@ class TunnelCoordinator(
                                     "Failed to apply live tunnel features to tunnel ${config.id}",
                                 )
                             }
+                            .onSuccess {
+                                globalEffectRepository.post(
+                                    GlobalSideEffect.Snackbar(
+                                        message =
+                                            StringValue.StringResource(
+                                                R.string.active_tunnel_updated
+                                            ),
+                                        ToastType.Success,
+                                    )
+                                )
+                            }
                     }
                 }
         }
     }
 
     private data class LiveTunnelFeatureKey(
-        val activeIds: Set<Int>,
         val statsEnabled: Boolean,
         val statsInterval: Int,
         val seamlessRecovery: Boolean,

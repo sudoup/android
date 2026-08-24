@@ -617,4 +617,5 @@
     <string name="transit_dns_block">Block</string>
     <string name="transit_dns_allow">Allow</string>
     <string name="error_config_missing_dns">Tunnel %1$s is missing DNS servers that are required for your current app settings</string>
+    <string name="active_tunnel_updated">Active tunnel updated</string>
 </resources>
