@@ -20,5 +20,4 @@ data class ProxySettingsUiState(
     val isUserNameError: Boolean = false,
     val isPasswordError: Boolean = false,
     val isLoading: Boolean = true,
-    val showSaveModal: Boolean = false,
 )

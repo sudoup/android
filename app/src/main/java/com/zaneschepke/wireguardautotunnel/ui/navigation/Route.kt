@@ -154,6 +154,8 @@ sealed class Route : NavKey {
     @Keep @Serializable data object Security : Route()
 
     @Keep @Serializable data object Monitoring : Route()
+
+    @Keep @Serializable data object TunnelRecovery : Route()
 }
 
 @Serializable
@@ -210,6 +212,7 @@ enum class Tab(
                 Route.TunnelGlobals,
                 Route.Security,
                 Route.Monitoring,
+                Route.TunnelRecovery,
                 Route.Logs -> SETTINGS
                 is Route.Support,
                 Route.License,

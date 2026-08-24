@@ -25,6 +25,6 @@ fun TunnelStatisticsRow(activeTunnel: ActiveTunnel) {
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         TunnelOverviewSection(activeTunnel = activeTunnel, now = now)
 
-        activeTunnel.activeConfig?.peers?.forEach { peer -> PeerStatisticsSection(peer) }
+        activeTunnel.activeConfig?.peers?.forEach { peer -> PeerStatisticsSection(peer, now) }
     }
 }

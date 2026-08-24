@@ -39,6 +39,7 @@ class TunnelViewModel(
                         excludedAppsCount = excludedAppCount,
                         includedAppsCount = includedAppCount,
                         activeConfig = active?.activeConfig,
+                        lastStatsAtMs = active?.lastStatsAtMs ?: 0L,
                         isLoading = false,
                     )
                 }

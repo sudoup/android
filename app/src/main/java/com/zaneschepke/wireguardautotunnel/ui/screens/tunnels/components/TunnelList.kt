@@ -88,10 +88,7 @@ fun TunnelList(
         }
 
         itemsIndexed(items = uiState.tunnels, key = { _, tunnel -> tunnel.id }) { index, tunnel ->
-            val activeTunnel =
-                remember(tunnel.id, uiState.backendStatus.activeTunnels) {
-                    uiState.backendStatus.activeTunnels[tunnel.id] ?: ActiveTunnel()
-                }
+            val activeTunnel = uiState.backendStatus.activeTunnels[tunnel.id] ?: ActiveTunnel()
 
             val displayState = remember(activeTunnel) { DisplayTunnelState.from(activeTunnel) }
 

@@ -44,6 +44,7 @@ import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelDnsProtocol
 import com.zaneschepke.wireguardautotunnel.ui.common.banner.WarningBanner
 import com.zaneschepke.wireguardautotunnel.ui.common.button.SurfaceRow
 import com.zaneschepke.wireguardautotunnel.ui.common.button.ThemedSwitch
+import com.zaneschepke.wireguardautotunnel.ui.common.dialog.rememberRestartToApplyChanges
 import com.zaneschepke.wireguardautotunnel.ui.common.dropdown.LabeledDropdown
 import com.zaneschepke.wireguardautotunnel.ui.common.label.GroupLabel
 import com.zaneschepke.wireguardautotunnel.ui.common.text.DescriptionText
@@ -69,11 +70,15 @@ fun DnsSettingsScreen(
 
     if (uiState.isLoading) return
 
+    val requestApply =
+        rememberRestartToApplyChanges(
+            needsRestart = uiState.hasActiveTunnel,
+            onSave = viewModel::save,
+        )
+
     sharedViewModel.collectSideEffect { effect ->
         when (effect) {
-            is LocalSideEffect.SaveChanges -> {
-                viewModel.save()
-            }
+            is LocalSideEffect.SaveChanges -> requestApply()
             else -> Unit
         }
     }

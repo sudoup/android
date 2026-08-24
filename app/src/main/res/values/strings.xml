@@ -362,6 +362,9 @@
     <string name="dual_stack_description">Tunnels must support IPv4 and IPv6</string>
     <string name="save_changes">Save changes</string>
     <string name="restart_message_template">Saving changes will cause the %1$s to restart, do you wish to continue?</string>
+    <string name="restart_required">Restart required</string>
+    <string name="restart_to_apply_message">The active tunnel must be restarted for these changes to take effect.</string>
+    <string name="save_and_restart">Save and restart</string>
     <string name="_continue">Continue</string>
     <string name="kill_switch">kill switch</string>
     <string name="translation">Translation</string>
@@ -579,6 +582,12 @@
     <string name="stored_logs_deleted">Stored logs deleted successfully</string>
     <string name="seamless_recovery">Seamless tunnel recovery</string>
     <string name="seamless_recovery_desc">Maintains protection while recovering from DDNS changes, network switches, and NAT issues</string>
+    <string name="tunnel_recovery">Tunnel recovery</string>
+    <string name="recovery_bounce_delay">Seamless recovery delay</string>
+    <string name="recovery_bounce_delay_desc">Handshake failure threshold before seamless recovery triggers</string>
+    <string name="recovery_details">Recovery details</string>
+    <string name="recovery_events">Recoveries: %d</string>
+    <string name="recovery_last_event">Last recovery: %s</string>
     <string name="now_in_template">Now in %1$s</string>
     <string name="snackbar_seamless_recovery_attempt">Connection issue detected. Recovering %s…</string>
     <string name="seamless_recovery_attempt_title">Seamless Recovery</string>

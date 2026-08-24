@@ -25,6 +25,8 @@ interface TunnelProvider {
 
     suspend fun disableLockDown(): Result<Unit>
 
+    suspend fun updateTunnel(tunnel: Tunnel): Result<Unit>
+
     val backendStatus: StateFlow<BackendStatus>
 
     val events: Flow<TunnelEvent>

@@ -13,4 +13,5 @@ data class DnsUiState(
     val tunnelEndpointError: DnsError? = null,
     val localSuffixesError: DnsError? = null,
     val systemDnsInfo: DnsInfo? = null,
+    val hasActiveTunnel: Boolean = false,
 )

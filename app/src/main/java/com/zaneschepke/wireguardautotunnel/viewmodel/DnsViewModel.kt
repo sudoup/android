@@ -5,6 +5,7 @@ import com.dokar.sonner.ToastType
 import com.zaneschepke.networkmonitor.NetworkMonitor
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.core.orchestration.DnsSettingsCoordinator
+import com.zaneschepke.wireguardautotunnel.core.orchestration.TunnelCoordinator
 import com.zaneschepke.wireguardautotunnel.domain.enums.BootstrapDnsProtocol
 import com.zaneschepke.wireguardautotunnel.domain.enums.ForeignDnsPolicy
 import com.zaneschepke.wireguardautotunnel.domain.enums.SplitDnsSuffixTarget
@@ -28,6 +29,7 @@ class DnsViewModel(
     private val networkMonitor: NetworkMonitor,
     private val globalEffectRepository: GlobalEffectRepository,
     private val dnsSettingsCoordinator: DnsSettingsCoordinator,
+    private val tunnelCoordinator: TunnelCoordinator,
 ) : OrbitContainerHost<DnsUiState, DnsUiState, Nothing>, ViewModel() {
 
     override val container =
@@ -39,16 +41,21 @@ class DnsViewModel(
                     dnsSettingsRepository.flow,
                     tunnelRepository.globalTunnelFlow,
                     networkMonitor.connectivityStateFlow,
-                ) { dnsSettings, globalTunnelConfig, connectivity ->
+                    tunnelCoordinator.backendStatus,
+                ) { dnsSettings, globalTunnelConfig, connectivity, backendStatus ->
                     if (state.isLoading) {
                         state.copy(
                             dnsSettings = dnsSettings,
                             globalTunnelConfig = globalTunnelConfig,
                             systemDnsInfo = connectivity?.underlyingDnsInfo,
                             isLoading = false,
+                            hasActiveTunnel = backendStatus.activeTunnels.isNotEmpty(),
                         )
                     } else {
-                        state.copy(systemDnsInfo = connectivity?.underlyingDnsInfo)
+                        state.copy(
+                            systemDnsInfo = connectivity?.underlyingDnsInfo,
+                            hasActiveTunnel = backendStatus.activeTunnels.isNotEmpty(),
+                        )
                     }
                 }
                 .collect { newState -> reduce { newState } }
@@ -73,7 +80,7 @@ class DnsViewModel(
         }
     }
 
-    fun save() = intent {
+    fun save(restart: Boolean = false) = intent {
         val settings = state.dnsSettings
 
         when (
@@ -181,6 +188,7 @@ class DnsViewModel(
 
         dnsSettingsRepository.upsert(updated)
         dnsSettingsCoordinator.appyDnsSettings(updated)
+        if (restart) tunnelCoordinator.restartActiveTunnels()
         postSideEffect(GlobalSideEffect.PopBackStack)
         postSideEffect(
             GlobalSideEffect.Snackbar(

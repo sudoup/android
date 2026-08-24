@@ -54,4 +54,8 @@ class TunnelBackendProvider(
     override suspend fun disableLockDown(): Result<Unit> {
         return backend.disableKillSwitch()
     }
+
+    override suspend fun updateTunnel(tunnel: Tunnel): Result<Unit> {
+        return backend.updateTunnel(tunnel)
+    }
 }

@@ -47,10 +47,7 @@ class ProxySettingsViewModel(
                 .collect { reduce { it } }
         }
 
-    // TODO add a dialog requesting restart if any tunnels active
-    fun save() = intent {
-        reduce { state.copy(showSaveModal = false) }
-
+    fun save(restart: Boolean = false) = intent {
         val current = state
 
         val updated =
@@ -107,6 +104,7 @@ class ProxySettingsViewModel(
         }
 
         proxySettingsRepository.upsert(updated)
+        if (restart) tunnelCoordinator.restartActiveTunnels()
 
         postSideEffect(
             GlobalSideEffect.Snackbar(
@@ -124,10 +122,6 @@ class ProxySettingsViewModel(
     fun clearUsernameError() = intent { reduce { state.copy(isPasswordError = false) } }
 
     fun clearPasswordError() = intent { reduce { state.copy(isPasswordError = false) } }
-
-    fun setShowSaveModal(showSaveModal: Boolean) = intent {
-        reduce { state.copy(showSaveModal = showSaveModal) }
-    }
 
     suspend fun postSideEffect(globalSideEffect: GlobalSideEffect) {
         globalEffectRepository.post(globalSideEffect)

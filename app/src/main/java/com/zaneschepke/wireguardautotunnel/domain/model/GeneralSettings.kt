@@ -22,4 +22,5 @@ data class GeneralSettings(
     val isGlobalAmneziaEnabled: Boolean = false,
     val tunnelScriptingEnabled: Boolean = false,
     val seamlessRecoveryEnabled: Boolean = true,
+    val seamlessRecoveryBounceDelaySec: Int = 30,
 )

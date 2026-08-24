@@ -9,6 +9,8 @@ import com.zaneschepke.wireguardautotunnel.domain.repository.LockdownSettingsRep
 import com.zaneschepke.wireguardautotunnel.domain.sideeffect.GlobalSideEffect
 import com.zaneschepke.wireguardautotunnel.ui.state.LockdownSettingsUiState
 import com.zaneschepke.wireguardautotunnel.util.StringValue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.orbitmvi.orbit.OrbitContainerHost
 import org.orbitmvi.orbit.viewmodel.orbitContainer
 
@@ -47,8 +49,7 @@ class LockdownViewModel(
             )
 
         lockdownSettingsRepository.upsert(updated)
-
-        tunnelCoordinator.applyLockdownSettings(updated)
+        withContext(Dispatchers.IO) { tunnelCoordinator.applyLockdownSettings(updated) }
 
         postSideEffect(GlobalSideEffect.PopBackStack)
         postSideEffect(
