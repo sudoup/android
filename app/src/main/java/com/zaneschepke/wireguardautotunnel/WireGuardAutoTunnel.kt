@@ -3,6 +3,8 @@ package com.zaneschepke.wireguardautotunnel
 import android.app.Application
 import android.os.StrictMode
 import com.wgtunnel.backend.Backend
+import com.wgtunnel.backend.BackendLog
+import com.wgtunnel.backend.LogLevel
 import com.wgtunnel.backend.service.AlwaysOnCallback
 import com.wgtunnel.backend.service.RuntimeManager
 import com.zaneschepke.wireguardautotunnel.core.event.TunnelEventDispatcher
@@ -73,6 +75,7 @@ class WireGuardAutoTunnel : Application(), KoinComponent {
     @OptIn(KoinViewModelScopeApi::class)
     override fun onCreate() {
         super.onCreate()
+        BackendLog.setMinLevel(if (BuildConfig.DEBUG) LogLevel.Debug else LogLevel.Info)
         startKoin {
             androidContext(this@WireGuardAutoTunnel)
             if (BuildConfig.DEBUG) androidLogger()

@@ -1,6 +1,8 @@
 package com.zaneschepke.wireguardautotunnel.core.orchestration
 
+import com.dokar.sonner.ToastType
 import com.wgtunnel.backend.model.BackendMode
+import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.core.event.TunnelErrorEvent
 import com.zaneschepke.wireguardautotunnel.core.tunnel.TunnelProvider
 import com.zaneschepke.wireguardautotunnel.data.repository.RoomDnsSettingsRepository
@@ -15,21 +17,27 @@ import com.zaneschepke.wireguardautotunnel.domain.model.ProxySettings
 import com.zaneschepke.wireguardautotunnel.domain.model.TunnelConfig
 import com.zaneschepke.wireguardautotunnel.domain.repository.AppStateRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.GeneralSettingRepository
+import com.zaneschepke.wireguardautotunnel.domain.repository.GlobalEffectRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.LockdownSettingsRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.MonitoringSettingsRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.ProxySettingsRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.TunnelRepository
+import com.zaneschepke.wireguardautotunnel.domain.sideeffect.GlobalSideEffect
 import com.zaneschepke.wireguardautotunnel.service.ServiceManager
+import com.zaneschepke.wireguardautotunnel.util.StringValue
 import com.zaneschepke.wireguardautotunnel.util.extensions.toTunnelDnsConfigOrNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
@@ -42,6 +50,7 @@ class TunnelCoordinator(
     private val tunnelRepository: TunnelRepository,
     dnsSettingsRepository: RoomDnsSettingsRepository,
     monitoringSettingsRepository: MonitoringSettingsRepository,
+    globalEffectRepository: GlobalEffectRepository,
     proxyRepository: ProxySettingsRepository,
     lockdownModeRepository: LockdownSettingsRepository,
     private val appStateRepository: AppStateRepository,
@@ -86,6 +95,85 @@ class TunnelCoordinator(
             initialValue = null,
         )
 
+    val backendStatus = tunnelProvider.backendStatus
+
+    init {
+        scope.launch {
+            combine(
+                    runtimeSettingsSnapshot,
+                    tunnelRepository.userTunnelsFlow,
+                    backendStatus,
+                ) { snapshot, tunnels, status ->
+                    val activeIds = status.activeTunnels.keys
+                    LiveTunnelFeatureKey(
+                        statsEnabled = snapshot.monitoring.tunnelStatisticsEnabled,
+                        statsInterval = snapshot.monitoring.tunnelStatisticsPollInterval,
+                        seamlessRecovery = snapshot.general.seamlessRecoveryEnabled,
+                        bounceDelaySec = snapshot.general.seamlessRecoveryBounceDelaySec,
+                        perTunnel =
+                            tunnels.associate { tun ->
+                                tun.id to
+                                    Triple(
+                                        tun.isDDNSTunnel,
+                                        tun.isIpv6Preferred,
+                                        tun.ipv6RestoreEnabled,
+                                    )
+                            },
+                    ) to
+                        LiveTunnelFeaturePayload(
+                            general = snapshot.general,
+                            monitoring = snapshot.monitoring,
+                            tunnels = tunnels.filter { it.id in activeIds },
+                        )
+                }
+                .distinctUntilChangedBy { it.first }
+                .drop(1)
+                .collect { (_, payload) ->
+                    payload.tunnels.forEach { config ->
+                        tunnelProvider
+                            .updateTunnel(
+                                config.toBackendTunnel(
+                                    payload.monitoring,
+                                    payload.general.tunnelScriptingEnabled,
+                                    payload.general,
+                                )
+                            )
+                            .onFailure {
+                                Timber.e(
+                                    it,
+                                    "Failed to apply live tunnel features to tunnel ${config.id}",
+                                )
+                            }
+                            .onSuccess {
+                                globalEffectRepository.post(
+                                    GlobalSideEffect.Snackbar(
+                                        message =
+                                            StringValue.StringResource(
+                                                R.string.active_tunnel_updated
+                                            ),
+                                        ToastType.Success,
+                                    )
+                                )
+                            }
+                    }
+                }
+        }
+    }
+
+    private data class LiveTunnelFeatureKey(
+        val statsEnabled: Boolean,
+        val statsInterval: Int,
+        val seamlessRecovery: Boolean,
+        val bounceDelaySec: Int,
+        val perTunnel: Map<Int, Triple<Boolean, Boolean, Boolean>>,
+    )
+
+    private data class LiveTunnelFeaturePayload(
+        val general: GeneralSettings,
+        val monitoring: MonitoringSettings,
+        val tunnels: List<TunnelConfig>,
+    )
+
     private suspend fun getSnapshot(): RuntimeSettingsSnapshot {
         return runtimeSettingsSnapshotState.filterNotNull().first()
     }
@@ -94,8 +182,6 @@ class TunnelCoordinator(
     private val tunnelMutex = Mutex()
     private val _errors = MutableSharedFlow<TunnelErrorEvent>()
     val errors = _errors.asSharedFlow()
-
-    val backendStatus = tunnelProvider.backendStatus
 
     suspend fun startTunnel(
         config: TunnelConfig,
@@ -218,6 +304,14 @@ class TunnelCoordinator(
 
     suspend fun startDefault() {
         tunnelRepository.getDefaultTunnel()?.let { tunnel -> startTunnel(tunnel) }
+    }
+
+    suspend fun restartActiveTunnels() = tunnelMutex.withLock {
+        val configs =
+            backendStatus.value.activeTunnels.keys.mapNotNull { tunnelRepository.getById(it) }
+        if (configs.isEmpty()) return@withLock
+        stopActiveTunnelsInternal(TunnelActionSource.USER, persistLastActive = true)
+        configs.forEach { startTunnelInternal(it, TunnelActionSource.USER) }
     }
 
     /**

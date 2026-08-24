@@ -10,7 +10,6 @@ import androidx.compose.material.icons.outlined.Http
 import androidx.compose.material.icons.outlined.RemoveRedEye
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -20,13 +19,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.domain.model.ProxySettings
 import com.zaneschepke.wireguardautotunnel.ui.common.button.SurfaceRow
 import com.zaneschepke.wireguardautotunnel.ui.common.button.ThemedSwitch
-import com.zaneschepke.wireguardautotunnel.ui.common.dialog.InfoDialog
+import com.zaneschepke.wireguardautotunnel.ui.common.dialog.rememberRestartToApplyChanges
 import com.zaneschepke.wireguardautotunnel.ui.common.label.GroupLabel
 import com.zaneschepke.wireguardautotunnel.ui.common.textbox.ConfigurationTextBox
 import com.zaneschepke.wireguardautotunnel.ui.sideeffect.LocalSideEffect
@@ -46,35 +44,19 @@ fun ProxySettingsScreen(
 
     if (uiState.isLoading) return
 
-    val locale = Locale.current.platformLocale
-
     val keyboardController = LocalSoftwareKeyboardController.current
 
     val keyboardActions = KeyboardActions(onDone = { keyboardController?.hide() })
     val keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
 
-    sharedViewModel.collectSideEffect { sideEffect ->
-        if (sideEffect is LocalSideEffect.SaveChanges) {
-            if (uiState.backendStatus.activeTunnels.isNotEmpty()) viewModel.setShowSaveModal(true)
-            else viewModel.save()
-        }
-    }
-
-    if (uiState.showSaveModal) {
-        InfoDialog(
-            onDismiss = { viewModel.setShowSaveModal(false) },
-            onAttest = { viewModel.save() },
-            title = stringResource(R.string.save_changes),
-            body = {
-                Text(
-                    stringResource(
-                        R.string.restart_message_template,
-                        stringResource(R.string.tunnels).lowercase(locale),
-                    )
-                )
-            },
-            confirmText = stringResource(R.string._continue),
+    val requestApply =
+        rememberRestartToApplyChanges(
+            needsRestart = uiState.backendStatus.activeTunnels.isNotEmpty(),
+            onSave = viewModel::save,
         )
+
+    sharedViewModel.collectSideEffect { sideEffect ->
+        if (sideEffect is LocalSideEffect.SaveChanges) requestApply()
     }
 
     Column(

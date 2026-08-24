@@ -36,4 +36,6 @@ data class GeneralSettings(
     val tunnelScriptingEnabled: Boolean = false,
     @ColumnInfo(name = "seamless_recovery", defaultValue = "1")
     val seamlessRecoveryEnabled: Boolean = true,
+    @ColumnInfo(name = "seamless_recovery_bounce_delay_sec", defaultValue = "30")
+    val seamlessRecoveryBounceDelaySec: Int = 30,
 )

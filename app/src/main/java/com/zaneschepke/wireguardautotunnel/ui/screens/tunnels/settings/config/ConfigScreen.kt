@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -39,6 +40,8 @@ import com.zaneschepke.wireguardautotunnel.util.StringValue
 import com.zaneschepke.wireguardautotunnel.util.extensions.isTextTooLargeForQr
 import com.zaneschepke.wireguardautotunnel.viewmodel.SharedAppViewModel
 import com.zaneschepke.wireguardautotunnel.viewmodel.TunnelViewModel
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinActivityViewModel
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
@@ -61,8 +64,23 @@ fun ConfigScreen(
 
     val scrollState = rememberScrollState()
 
+    val now by
+        produceState(System.currentTimeMillis(), liveConfig) {
+            if (!liveConfig) return@produceState
+            while (true) {
+                delay(1.seconds)
+                value = System.currentTimeMillis()
+            }
+        }
+
     val rawConfig by
-        remember(liveConfig, uiState.activeConfig, uiState.tunnel?.quickConfig) {
+        remember(
+            liveConfig,
+            uiState.activeConfig,
+            uiState.lastStatsAtMs,
+            uiState.tunnel?.quickConfig,
+            now,
+        ) {
             derivedStateOf {
                 if (liveConfig) {
                     uiState.activeConfig?.asQuickString() ?: uiState.tunnel?.quickConfig ?: ""

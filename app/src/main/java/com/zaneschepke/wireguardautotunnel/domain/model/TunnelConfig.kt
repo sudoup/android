@@ -78,6 +78,7 @@ data class TunnelConfig(
                         dynamicDnsRecovery = config.isDDNSTunnel,
                         ipv4Fallback = config.isIpv6Preferred,
                         ipv6Recovery = config.ipv6RestoreEnabled,
+                        bounceDelaySeconds = generalSettings.seamlessRecoveryBounceDelaySec,
                     )
                 )
             }

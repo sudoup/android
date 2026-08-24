@@ -8,6 +8,7 @@ import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.ContentPasteGo
 import androidx.compose.material.icons.outlined.CopyAll
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.RemoveRedEye
 import androidx.compose.material.icons.rounded.Add
@@ -65,6 +66,7 @@ import com.zaneschepke.wireguardautotunnel.ui.navigation.Route.SplitTunnel
 import com.zaneschepke.wireguardautotunnel.ui.navigation.Route.SplitTunnelGlobal
 import com.zaneschepke.wireguardautotunnel.ui.navigation.Route.Support
 import com.zaneschepke.wireguardautotunnel.ui.navigation.Route.TunnelGlobals
+import com.zaneschepke.wireguardautotunnel.ui.navigation.Route.TunnelRecovery
 import com.zaneschepke.wireguardautotunnel.ui.navigation.Route.TunnelSettings
 import com.zaneschepke.wireguardautotunnel.ui.navigation.Route.Tunnels
 import com.zaneschepke.wireguardautotunnel.ui.navigation.Route.WifiDetectionMethod
@@ -571,6 +573,27 @@ fun currentRouteAsNavbarState(
                     NavbarState(
                         topLeading = { TvBackButton { navController.pop() } },
                         topTitle = context.getString(R.string.monitoring),
+                        showBottomItems = true,
+                    )
+                }
+                is TunnelRecovery -> {
+                    NavbarState(
+                        topLeading = { TvBackButton { navController.pop() } },
+                        topTitle = context.getString(R.string.tunnel_recovery),
+                        topTrailing = {
+                            IconButton(
+                                onClick = {
+                                    sharedViewModel.postSideEffect(
+                                        LocalSideEffect.Modal.RecoveryDetails
+                                    )
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Outlined.Info,
+                                    contentDescription = stringResource(R.string.recovery_details),
+                                )
+                            }
+                        },
                         showBottomItems = true,
                     )
                 }
