@@ -42,6 +42,8 @@ object ConfigReconciler {
                 if (policy.amnezia) global.keepaliveTimeout else base.keepaliveTimeout,
             maxHandshakeAttempts =
                 if (policy.amnezia) global.maxHandshakeAttempts else base.maxHandshakeAttempts,
+            randomTrailers = if (policy.amnezia) global.randomTrailers else base.randomTrailers,
+            disableCookies = if (policy.amnezia) global.disableCookies else base.disableCookies,
         )
     }
 
