@@ -41,6 +41,8 @@ data class EditableInterface(
     val rejectAfterTime: String = "",
     val keepaliveTimeout: String = "",
     val maxHandshakeAttempts: String = "",
+    // AmneziaWG 3.1
+    val randomTrailers: String = ""
 ) {
 
     fun hasScripts(): Boolean = listOf(preUp, postUp, preDown, postDown).any { it.isNotBlank() }
@@ -70,6 +72,7 @@ data class EditableInterface(
                 rejectAfterTime,
                 keepaliveTimeout,
                 maxHandshakeAttempts,
+                randomTrailers
             )
             .any { it.isNotBlank() }
     }
@@ -227,6 +230,7 @@ data class EditableInterface(
                 rejectAfterTime = i.rejectAfterTime ?: "",
                 keepaliveTimeout = i.keepaliveTimeout ?: "",
                 maxHandshakeAttempts = i.maxHandshakeAttempts ?: "",
+                randomTrailers = i.randomTrailers ?: "",
             )
         }
     }
