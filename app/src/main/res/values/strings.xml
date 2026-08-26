@@ -402,6 +402,7 @@
     <string name="reject_after_time" translatable="false">RejectAfterTime</string>
     <string name="keepalive_timeout" translatable="false">KeepaliveTimeout</string>
     <string name="max_handshake_attempts" translatable="false">MaxHandshakeAttempts</string>
+    <string name="random_trailers" translatable="false">RandomTrailers</string>
     <string name="copy_from">Copy from</string>
     <string name="mode">Mode</string>
     <string name="app_selection">App selection</string>
