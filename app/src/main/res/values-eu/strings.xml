@@ -493,7 +493,6 @@
     <string name="split_suffix_target">Atzizkien bideratze-helburua</string>
     <string name="split_suffix_target_system">Sistemaren DNSa</string>
     <string name="split_suffix_target_tunnel">Tunelaren DNSa</string>
-    <string name="split_suffix_target_desc">Atzizkiak non bideratu behar diren. Gainerako guztia tunelaren DNSaren bidez bideratzen da</string>
     <string name="private_dns_enabled_warning">DNS pribatua gaituta dago. Desgaitu ezazu tunelaren DNSak behar bezala funtziona dezan</string>
     <string name="transit_dns_policy">Igarotzeko DNS eskaerak</string>
     <string name="transit_dns_policy_desc">Nola kudeatu tunelaren DNS zerbitzariak ez diren beste zerbitzari batera bidalitako DNS eskaera arruntak</string>
