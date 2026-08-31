@@ -115,3 +115,5 @@ For PRs, please make sure to format before submitting.
 ```sh
 ./gradlew format
 ```
+
+CI runs `./gradlew formatCheck`, which uses the same files and style as `format`. If that job fails, run `format` and commit the result.

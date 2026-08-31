@@ -26,5 +26,7 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Run ktfmt
-        run: ./gradlew ktfmtCheck
+      - name: Check formatting
+        run: |
+          ./gradlew formatCheck
+          echo "Working tree matches ./gradlew format."
