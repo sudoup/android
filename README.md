@@ -83,14 +83,70 @@ WG Tunnel is an alternative Android client for WireGuard and AmneziaWG, inspired
 
 ## Building
 
+The app consumes published [core](https://github.com/wgtunnel/core) artifacts from Maven Central by default (`libs.bundles.wgtunnel.core`). That is enough for most app-only work.
+
 ```sh
-git clone https://github.com/wgtunnel/wgtunnel
-cd wgtunnel
+git clone https://github.com/wgtunnel/android
+cd android
+./gradlew assembleDebug
 ```
+
+### Local full build (app + core)
+
+To build against a local core checkout (native JNI, backend, parser, hevtunnel), clone **core next to this repo**:
+
+```
+parent/
+  android/    # this repository
+  core/       # https://github.com/wgtunnel/core
+```
+
+```sh
+cd /path/to/parent
+git clone https://github.com/wgtunnel/android
+git clone https://github.com/wgtunnel/core
+cd android
+```
+
+You also need the [core build requirements](https://github.com/wgtunnel/core#requirements) (JDK 21, Android NDK, `make`, a C toolchain).
+
+Then switch Gradle from Maven Central to the composite build:
+
+1. In `settings.gradle.kts`, uncomment the local-dev `includeBuild`:
+
+```kotlin
+// Local dev
+includeBuild("../core") {
+	dependencySubstitution {
+		substitute(module("com.wgtunnel.tunnel:backend"))
+			.using(project(":backend"))
+		substitute(module("com.wgtunnel.tunnel:backend-android-jni"))
+			.using(project(":backend-android-jni"))
+	}
+}
+```
+
+2. In `app/build.gradle.kts`, comment out the Maven bundle and uncomment the local-dev implementations:
+
+```kotlin
+dependencies {
+    implementation(project(":logcatter"))
+    implementation(project(":networkmonitor"))
+    // implementation(libs.bundles.wgtunnel.core)
+
+    // Local dev
+    implementation("com.wgtunnel.tunnel:backend")
+    implementation("com.wgtunnel.tunnel:backend-android-jni")
+}
+```
+
+3. Build from `android/`:
 
 ```sh
 ./gradlew assembleDebug
 ```
+
+Do not commit those Gradle edits. Restore the commented `includeBuild` and Maven `libs.bundles.wgtunnel.core` dependency before opening a PR.
 
 ## Translation
 
@@ -116,4 +172,6 @@ For PRs, please make sure to format before submitting.
 ./gradlew format
 ```
 
-CI runs `./gradlew formatCheck`, which uses the same files and style as `format`. If that job fails, run `format` and commit the result.
+CI runs `./gradlew formatCheck`, which uses the same files and style as `format`. If that job fails, run `./gradlew format` and commit the result.
+
+If your PR requires [core](https://github.com/wgtunnel/core) changes, please link the associated PR. 
