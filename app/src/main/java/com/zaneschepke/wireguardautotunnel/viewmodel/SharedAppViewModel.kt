@@ -1,12 +1,14 @@
 package com.zaneschepke.wireguardautotunnel.viewmodel
 
 import android.net.Uri
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dokar.sonner.ToastType
 import com.wgtunnel.parser.Config
 import com.wgtunnel.parser.ConfigParseException
 import com.zaneschepke.wireguardautotunnel.R
+import com.zaneschepke.wireguardautotunnel.core.orchestration.AutoTunnelCoordinator
 import com.zaneschepke.wireguardautotunnel.core.orchestration.TunnelBackendCoordinator
 import com.zaneschepke.wireguardautotunnel.core.orchestration.TunnelCoordinator
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelMode
@@ -17,6 +19,7 @@ import com.zaneschepke.wireguardautotunnel.domain.repository.GlobalEffectReposit
 import com.zaneschepke.wireguardautotunnel.domain.repository.SelectedTunnelsRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.TunnelRepository
 import com.zaneschepke.wireguardautotunnel.domain.sideeffect.GlobalSideEffect
+import com.zaneschepke.wireguardautotunnel.domain.sideeffect.NotificationPendingAction
 import com.zaneschepke.wireguardautotunnel.service.ServiceManager
 import com.zaneschepke.wireguardautotunnel.service.autotunnel.AutoTunnelStateHolder
 import com.zaneschepke.wireguardautotunnel.ui.sideeffect.LocalSideEffect
@@ -62,6 +65,7 @@ class SharedAppViewModel(
     private val appStateRepository: AppStateRepository,
     private val serviceManager: ServiceManager,
     private val tunnelCoordinator: TunnelCoordinator,
+    private val autoTunnelCoordinator: AutoTunnelCoordinator,
     private val globalEffectRepository: GlobalEffectRepository,
     private val tunnelRepository: TunnelRepository,
     private val settingsRepository: GeneralSettingRepository,
@@ -126,7 +130,6 @@ class SharedAppViewModel(
                         state.copy(
                             theme = settings.theme,
                             tunnelMode = settings.tunnelMode,
-                            locale = settings.locale ?: LocaleUtil.OPTION_PHONE_LANGUAGE,
                             tunnelNames = tunNames,
                             alreadyDonated = settings.alreadyDonated,
                             isAutoTunnelActive = autoTunnelActive,
@@ -151,8 +154,21 @@ class SharedAppViewModel(
                     GlobalSideEffect.RequestVpnPermission(TunnelMode.VPN, tunnelConfig)
                 )
         }
+        if (
+            !serviceManager.hasNotificationPermission() &&
+                !appStateRepository.isNotificationPermissionRequested()
+        ) {
+            appStateRepository.setNotificationPermissionRequested(true)
+            return@intent postSideEffect(
+                GlobalSideEffect.RequestNotificationPermission(
+                    NotificationPendingAction.StartTunnel(tunnelConfig)
+                )
+            )
+        }
         tunnelCoordinator.startTunnel(tunnelConfig)
     }
+
+    fun toggleAutoTunnel() = intent { autoTunnelCoordinator.toggle() }
 
     fun postSideEffect(localSideEffect: LocalSideEffect) = intent {
         postSideEffect(localSideEffect)
@@ -165,8 +181,23 @@ class SharedAppViewModel(
     fun setTheme(theme: Theme) = intent { settingsRepository.updateTheme(theme) }
 
     fun setLocale(locale: String) = intent {
-        settingsRepository.updateLocale(locale)
-        postSideEffect(GlobalSideEffect.ConfigChanged)
+        // pre-T the stored value is reapplied on startup, on T+ the system persists it
+        if (!LocaleUtil.isSystemManaged) settingsRepository.updateLocale(locale)
+        withContext(Dispatchers.Main) { LocaleUtil.changeLocale(locale) }
+    }
+
+    fun syncLocale() = intent {
+        val stored = settingsRepository.flow.firstOrNull()?.locale ?: return@intent
+        if (stored == LocaleUtil.OPTION_PHONE_LANGUAGE) return@intent
+        if (LocaleUtil.isSystemManaged) {
+            // one-time handoff to the system, without overriding a locale set in system settings
+            if (AppCompatDelegate.getApplicationLocales().isEmpty) {
+                withContext(Dispatchers.Main) { LocaleUtil.changeLocale(stored) }
+            }
+            settingsRepository.updateLocale(LocaleUtil.OPTION_PHONE_LANGUAGE)
+        } else {
+            withContext(Dispatchers.Main) { LocaleUtil.changeLocale(stored) }
+        }
     }
 
     fun setPinLockEnabled(enabled: Boolean) = intent {

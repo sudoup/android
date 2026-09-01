@@ -5,11 +5,9 @@ import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.domain.enums.NotificationAction
 import com.zaneschepke.wireguardautotunnel.notification.AndroidNotificationService.NotificationChannels
 import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.PROXY_GROUP_KEY
-import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.PROXY_NOTIFICATION_ID
 import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.TUNNEL_ERROR_NOTIFICATION_ID
 import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.TUNNEL_MESSAGES_NOTIFICATION_ID
 import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.VPN_GROUP_KEY
-import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.VPN_NOTIFICATION_ID
 
 class AndroidTunnelNotificationService(private val notificationService: NotificationService) :
     TunnelNotificationService {
@@ -111,38 +109,6 @@ class AndroidTunnelNotificationService(private val notificationService: Notifica
         )
     }
 
-    override fun updateVpnPersistentNotification(
-        tunnelNotificationLines: Map<Int, TunnelNotificationLine>
-    ) {
-        if (tunnelNotificationLines.isEmpty()) {
-            notificationService.remove(VPN_NOTIFICATION_ID)
-            return
-        }
-        val notification =
-            createGroupNotification(
-                tunnelNotificationLines,
-                NotificationChannels.Tunnel.VPN,
-                VPN_GROUP_KEY,
-            )
-        notificationService.show(VPN_NOTIFICATION_ID, notification)
-    }
-
-    override fun updateProxyPersistentNotification(
-        tunnelNotificationLines: Map<Int, TunnelNotificationLine>
-    ) {
-        if (tunnelNotificationLines.isEmpty()) {
-            notificationService.remove(PROXY_NOTIFICATION_ID)
-            return
-        }
-        val notification =
-            createGroupNotification(
-                tunnelNotificationLines,
-                NotificationChannels.Tunnel.Proxy,
-                PROXY_GROUP_KEY,
-            )
-        notificationService.show(PROXY_NOTIFICATION_ID, notification)
-    }
-
     override fun showIpv4Fallback(tunnelName: String) {
         showEvent(
             title = "${context.getString(R.string.ipv4_fallback)} • $tunnelName",
@@ -182,17 +148,17 @@ class AndroidTunnelNotificationService(private val notificationService: Notifica
     }
 
     override fun showSocks5PortUnavailable(port: Int, tunnelName: String) {
-        val context = notificationService.context
-        val message = context.getString(R.string.error_socks5_port_unavailable, port)
-
-        showError(message)
+        showErrorNotification(
+            title = "${context.getString(R.string.error)} • $tunnelName",
+            message = context.getString(R.string.error_socks5_port_unavailable, port),
+        )
     }
 
     override fun showHttpPortUnavailable(port: Int, tunnelName: String) {
-        val context = notificationService.context
-        val message = context.getString(R.string.error_http_port_unavailable, port)
-
-        showError(message)
+        showErrorNotification(
+            title = "${context.getString(R.string.error)} • $tunnelName",
+            message = context.getString(R.string.error_http_port_unavailable, port),
+        )
     }
 
     override fun showConfigMissingDns(tunnelName: String) {
@@ -202,21 +168,24 @@ class AndroidTunnelNotificationService(private val notificationService: Notifica
     }
 
     override fun showError(message: String) {
+        showErrorNotification(title = context.getString(R.string.error), message = message)
+    }
+
+    private fun showErrorNotification(title: String, message: String) {
         val notification =
             notificationService.createNotification(
                 channel = NotificationChannels.Errors,
-                title = notificationService.context.getString(R.string.error),
+                title = title,
                 description = message,
                 onGoing = false,
                 onlyAlertOnce = true,
-                groupKey = VPN_GROUP_KEY,
+                style = NotificationCompat.BigTextStyle().bigText(message),
             )
 
         notificationService.show(TUNNEL_ERROR_NOTIFICATION_ID, notification)
     }
 
     private fun showEvent(title: String, message: String) {
-
         val notification =
             notificationService.createNotification(
                 channel = NotificationChannels.Events,
@@ -224,7 +193,6 @@ class AndroidTunnelNotificationService(private val notificationService: Notifica
                 description = message,
                 onGoing = false,
                 onlyAlertOnce = true,
-                groupKey = VPN_GROUP_KEY,
             )
 
         notificationService.show(TUNNEL_MESSAGES_NOTIFICATION_ID, notification)

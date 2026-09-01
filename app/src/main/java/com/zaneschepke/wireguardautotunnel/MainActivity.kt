@@ -86,6 +86,7 @@ import com.zaneschepke.wireguardautotunnel.domain.model.TunnelConfig
 import com.zaneschepke.wireguardautotunnel.domain.repository.AppStateRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.TunnelRepository
 import com.zaneschepke.wireguardautotunnel.domain.sideeffect.GlobalSideEffect
+import com.zaneschepke.wireguardautotunnel.domain.sideeffect.NotificationPendingAction
 import com.zaneschepke.wireguardautotunnel.notification.NotificationService
 import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.EXTRA_AUTO_UPDATE
 import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.EXTRA_OPEN_SUPPORT
@@ -140,12 +141,10 @@ import com.zaneschepke.wireguardautotunnel.ui.theme.SilverTree
 import com.zaneschepke.wireguardautotunnel.ui.theme.Straw
 import com.zaneschepke.wireguardautotunnel.ui.theme.WireguardAutoTunnelTheme
 import com.zaneschepke.wireguardautotunnel.util.FileUtils
-import com.zaneschepke.wireguardautotunnel.util.LocaleUtil
 import com.zaneschepke.wireguardautotunnel.util.StringValue
 import com.zaneschepke.wireguardautotunnel.util.extensions.installApk
 import com.zaneschepke.wireguardautotunnel.util.extensions.isRunningOnTv
 import com.zaneschepke.wireguardautotunnel.util.extensions.openWebUrl
-import com.zaneschepke.wireguardautotunnel.util.extensions.restartApp
 import com.zaneschepke.wireguardautotunnel.util.permission.LocalNetworkPermissionHelper
 import com.zaneschepke.wireguardautotunnel.viewmodel.ConfigEditViewModel
 import com.zaneschepke.wireguardautotunnel.viewmodel.SharedAppViewModel
@@ -213,7 +212,7 @@ class MainActivity : AppCompatActivity() {
 
             LaunchedEffect(uiState.isAppLoaded) {
                 if (uiState.isAppLoaded) {
-                    uiState.locale.let { LocaleUtil.changeLocale(it) }
+                    viewModel.syncLocale()
                 }
             }
 
@@ -225,6 +224,9 @@ class MainActivity : AppCompatActivity() {
             var vpnPermissionDenied by remember { mutableStateOf(false) }
             var requestingTunnelMode by remember {
                 mutableStateOf<Pair<TunnelMode?, TunnelConfig?>>(Pair(null, null))
+            }
+            var pendingNotificationAction by remember {
+                mutableStateOf<NotificationPendingAction?>(null)
             }
             var showLocalNetworkRationale by remember { mutableStateOf(false) }
             var hasPromptedLocalNetwork by rememberSaveable { mutableStateOf(false) }
@@ -328,6 +330,17 @@ class MainActivity : AppCompatActivity() {
                     },
                 )
 
+            val notificationPermissionLauncher =
+                rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+                    when (val action = pendingNotificationAction) {
+                        is NotificationPendingAction.StartTunnel ->
+                            viewModel.startTunnel(action.config)
+                        NotificationPendingAction.ToggleAutoTunnel -> viewModel.toggleAutoTunnel()
+                        null -> Unit
+                    }
+                    pendingNotificationAction = null
+                }
+
             LaunchedEffect(uiState.isAppLoaded, coldStartAutoUpdate) {
                 if (!uiState.isAppLoaded || !coldStartAutoUpdate) return@LaunchedEffect
                 coldStartAutoUpdate = false
@@ -348,12 +361,17 @@ class MainActivity : AppCompatActivity() {
             LaunchedEffect(Unit) {
                 viewModel.globalSideEffect.collectLatest { sideEffect ->
                     when (sideEffect) {
-                        GlobalSideEffect.ConfigChanged -> restartApp()
                         GlobalSideEffect.PopBackStack -> navController.pop()
                         is GlobalSideEffect.RequestVpnPermission -> {
                             requestingTunnelMode =
                                 Pair(sideEffect.requestingMode, sideEffect.config)
                             vpnActivity.launch(VpnService.prepare(this@MainActivity))
+                        }
+                        is GlobalSideEffect.RequestNotificationPermission -> {
+                            pendingNotificationAction = sideEffect.pendingAction
+                            notificationPermissionLauncher.launch(
+                                Manifest.permission.POST_NOTIFICATIONS
+                            )
                         }
                         is GlobalSideEffect.Snackbar -> snackbarChannel.send(sideEffect)
                         is GlobalSideEffect.LaunchUrl -> context.openWebUrl(sideEffect.url)
