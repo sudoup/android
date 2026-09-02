@@ -11,7 +11,7 @@ interface NotificationService {
 
     fun createNotification(
         channel: NotificationChannels,
-        title: String = "",
+        title: CharSequence = "",
         subText: String? = null,
         actions: Collection<NotificationCompat.Action> = emptyList(),
         description: String = "",
@@ -21,6 +21,10 @@ interface NotificationService {
         groupKey: String? = null,
         isGroupSummary: Boolean = false,
         style: NotificationCompat.Style? = null,
+        requestPromotedOngoing: Boolean = false,
+        shortCriticalText: String? = null,
+        chronometerBaseMillis: Long? = null,
+        color: Int? = null,
     ): Notification
 
     fun createAllChannels()
@@ -28,6 +32,7 @@ interface NotificationService {
     fun createNotificationAction(
         notificationAction: NotificationAction,
         extraId: Int? = null,
+        authenticationRequired: Boolean = false,
     ): NotificationCompat.Action
 
     fun remove(notificationId: Int)
@@ -37,8 +42,6 @@ interface NotificationService {
     fun showUpdateAvailable(version: String)
 
     companion object {
-        const val VPN_GROUP_KEY = "VPN_GROUP"
-        const val PROXY_GROUP_KEY = "PROXY_GROUP"
         const val AUTO_TUNNEL_GROUP_KEY = "AUTO_TUNNEL_GROUP"
         const val AUTO_TUNNEL_LOCATION_PERMISSION_ID = 123
         const val AUTO_TUNNEL_LOCATION_SERVICES_ID = 124

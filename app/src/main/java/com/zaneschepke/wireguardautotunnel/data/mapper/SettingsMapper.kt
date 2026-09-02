@@ -24,6 +24,11 @@ fun Entity.toDomain(): Domain =
         tunnelScriptingEnabled = tunnelScriptingEnabled,
         seamlessRecoveryEnabled = seamlessRecoveryEnabled,
         seamlessRecoveryBounceDelaySec = seamlessRecoveryBounceDelaySec,
+        isLiveUpdatesEnabled = isLiveUpdatesEnabled,
+        isNotificationOriginEnabled = isNotificationOriginEnabled,
+        isNotificationTransferEnabled = isNotificationTransferEnabled,
+        isNotificationRecoveryEnabled = isNotificationRecoveryEnabled,
+        isNotificationFailureTintEnabled = isNotificationFailureTintEnabled,
     )
 
 fun Domain.toEntity(): Entity =
@@ -46,4 +51,9 @@ fun Domain.toEntity(): Entity =
         tunnelScriptingEnabled = tunnelScriptingEnabled,
         seamlessRecoveryEnabled = seamlessRecoveryEnabled,
         seamlessRecoveryBounceDelaySec = seamlessRecoveryBounceDelaySec,
+        isLiveUpdatesEnabled = isLiveUpdatesEnabled,
+        isNotificationOriginEnabled = isNotificationOriginEnabled,
+        isNotificationTransferEnabled = isNotificationTransferEnabled,
+        isNotificationRecoveryEnabled = isNotificationRecoveryEnabled,
+        isNotificationFailureTintEnabled = isNotificationFailureTintEnabled,
     )
