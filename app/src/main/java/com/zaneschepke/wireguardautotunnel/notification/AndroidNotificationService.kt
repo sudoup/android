@@ -29,7 +29,7 @@ class AndroidNotificationService(override val context: Context) : NotificationSe
 
     override fun createNotification(
         channel: NotificationChannels,
-        title: String,
+        title: CharSequence,
         subText: String?,
         actions: Collection<Action>,
         description: String,
@@ -39,6 +39,10 @@ class AndroidNotificationService(override val context: Context) : NotificationSe
         groupKey: String?,
         isGroupSummary: Boolean,
         style: NotificationCompat.Style?,
+        requestPromotedOngoing: Boolean,
+        shortCriticalText: String?,
+        chronometerBaseMillis: Long?,
+        color: Int?,
     ): Notification {
         notificationManager.createNotificationChannel(channel.asChannel())
         return channel
@@ -46,7 +50,7 @@ class AndroidNotificationService(override val context: Context) : NotificationSe
             .apply {
                 actions.forEach { addAction(it) }
                 setContentTitle(title)
-                setSubText(subText)
+                if (subText != null) setSubText(subText)
                 setContentIntent(
                     PendingIntent.getActivity(
                         context,
@@ -60,7 +64,11 @@ class AndroidNotificationService(override val context: Context) : NotificationSe
                 setOnlyAlertOnce(onlyAlertOnce)
                 setOngoing(onGoing)
                 setShowWhen(showTimestamp)
-                setSmallIcon(R.drawable.ic_notification)
+                setSmallIcon(R.drawable.qs_logo)
+                if (color != null) {
+                    setColor(color)
+                }
+                extras.putBoolean("android.app.preferSmallIcon", true)
                 if (groupKey != null) {
                     setGroup(groupKey)
                     if (isGroupSummary) {
@@ -68,6 +76,14 @@ class AndroidNotificationService(override val context: Context) : NotificationSe
                     }
                 }
                 style?.let { setStyle(it) }
+                if (requestPromotedOngoing) {
+                    setRequestPromotedOngoing(true)
+                }
+                shortCriticalText?.let { setShortCriticalText(it) }
+                chronometerBaseMillis?.let {
+                    setWhen(it)
+                    setUsesChronometer(true)
+                }
             }
             .build()
     }
@@ -75,6 +91,7 @@ class AndroidNotificationService(override val context: Context) : NotificationSe
     override fun createNotificationAction(
         notificationAction: NotificationAction,
         extraId: Int?,
+        authenticationRequired: Boolean,
     ): Action {
         val pendingIntent =
             PendingIntent.getBroadcast(
@@ -87,10 +104,11 @@ class AndroidNotificationService(override val context: Context) : NotificationSe
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
         return Action.Builder(
-                R.drawable.ic_notification,
+                R.drawable.qs_logo,
                 notificationAction.title(context),
                 pendingIntent,
             )
+            .setAuthenticationRequired(authenticationRequired)
             .build()
     }
 
@@ -126,7 +144,7 @@ class AndroidNotificationService(override val context: Context) : NotificationSe
             )
         val updateAction =
             Action.Builder(
-                    R.drawable.ic_notification,
+                    R.drawable.qs_logo,
                     context.getString(R.string.update),
                     openIntent,
                 )
@@ -136,7 +154,7 @@ class AndroidNotificationService(override val context: Context) : NotificationSe
                 .setContentTitle(context.getString(R.string.update_available))
                 .setContentText(context.getString(R.string.update_notification_message, version))
                 .setContentIntent(openIntent)
-                .setSmallIcon(R.drawable.ic_notification)
+                .setSmallIcon(R.drawable.qs_logo)
                 .setAutoCancel(true)
                 .setOnlyAlertOnce(true)
                 .addAction(updateAction)

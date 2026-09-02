@@ -13,6 +13,8 @@ import com.zaneschepke.wireguardautotunnel.core.event.TunnelEventDispatcher
 import com.zaneschepke.wireguardautotunnel.core.orchestration.AppBoostrapCoordinator
 import com.zaneschepke.wireguardautotunnel.core.orchestration.StartupCoordinator
 import com.zaneschepke.wireguardautotunnel.core.orchestration.TunnelCoordinator
+import com.zaneschepke.wireguardautotunnel.core.tunnel.AppProvider
+import com.zaneschepke.wireguardautotunnel.core.tunnel.TunnelOriginHolder
 import com.zaneschepke.wireguardautotunnel.core.tunnel.TunnelProvider
 import com.zaneschepke.wireguardautotunnel.core.worker.UpdateCheckWorker
 import com.zaneschepke.wireguardautotunnel.di.Dispatcher
@@ -114,6 +116,8 @@ class WireGuardAutoTunnel : Application(), KoinComponent {
 
         // for notifications
         dispatcher.bind(applicationScope, provider.events, tunnelCoordinator.errors)
+        get<TunnelOriginHolder>().bind(applicationScope, tunnelCoordinator.actions)
+        get<AppProvider>().bind(applicationScope)
 
         if (BuildConfig.FLAVOR == Constants.STANDALONE_FLAVOR) {
             UpdateCheckWorker.start(this)
