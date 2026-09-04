@@ -86,7 +86,9 @@ class AutoTunnelService : LifecycleService() {
 
         val backendFlow =
             tunnelCoordinator.backendStatus
-                .distinctUntilChanged { old, new -> old.activeTunnels == new.activeTunnels }
+                .distinctUntilChanged { old, new ->
+                    old.activeTunnels.keys == new.activeTunnels.keys
+                }
                 .debounce(300L.milliseconds)
 
         combine(networkFlow, settingsFlow, backendFlow) { network, settings, backend ->
@@ -183,7 +185,7 @@ class AutoTunnelService : LifecycleService() {
     // and re-evaluation to prevent unwanted stops
     // on flaky networks and network transitions
     private fun scheduleNoInternetStop() {
-        noInternetStopJob?.cancel()
+        if (noInternetStopJob?.isActive == true) return
 
         noInternetStopJob =
             lifecycleScope.launch(ioDispatcher) {
