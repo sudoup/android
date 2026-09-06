@@ -11,6 +11,11 @@ plugins {
     alias(libs.plugins.aboutlibraries)
 }
 
+// TODO temp fix for duplicate tink conflict from core
+configurations.configureEach {
+    exclude(group = "com.google.crypto.tink", module = "tink")
+}
+
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
