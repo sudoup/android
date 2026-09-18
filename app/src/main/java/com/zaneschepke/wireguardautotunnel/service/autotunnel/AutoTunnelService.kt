@@ -79,6 +79,10 @@ class AutoTunnelService : LifecycleService() {
 
     @Volatile private var hasUserOverride = false
     private var lastNetworkKey: String? = null
+    // Mirrors AutoTunnelState.confirmedHasUsableNetwork so scheduleNoInternetStop's delayed
+    // check uses the same debounced signal the engine used to decide to arm it, instead of
+    // re-deriving a fresh (not debounced) reading that could disagree by the time it fires.
+    @Volatile private var lastConfirmedHasUsableNetwork = false
 
     @OptIn(FlowPreview::class)
     private val autoTunnelStateFlow: Flow<AutoTunnelState> by lazy {
@@ -104,11 +108,22 @@ class AutoTunnelService : LifecycleService() {
                 .distinctUntilChanged()
                 .debounceFalling(CAPTIVE_PORTAL_CLEAR_CONFIRM_MS.milliseconds)
 
-        combine(networkFlow, settingsFlow, backendFlow, confirmedCaptivePortalFlow) {
-                network,
-                settings,
-                backend,
-                confirmedCaptivePortal ->
+        // Having a usable network is believed immediately, but losing it is only believed once
+        // it's held false for NO_INTERNET_CONFIRM_MS without recovering as Android's connectivity
+        // validation can flap for an extended period during network transitions
+        val confirmedHasUsableNetworkFlow =
+            networkFlow
+                .map { it.hasUsableNetwork }
+                .distinctUntilChanged()
+                .debounceFalling(NO_INTERNET_CONFIRM_MS.milliseconds)
+
+        combine(
+                networkFlow,
+                settingsFlow,
+                backendFlow,
+                confirmedCaptivePortalFlow,
+                confirmedHasUsableNetworkFlow,
+            ) { network, settings, backend, confirmedCaptivePortal, confirmedHasUsableNetwork ->
                 AutoTunnelState(
                     networkState = network,
                     settings = settings.second,
@@ -116,6 +131,7 @@ class AutoTunnelService : LifecycleService() {
                     tunnels = settings.third,
                     backendStatus = backend,
                     confirmedCaptivePortal = confirmedCaptivePortal,
+                    confirmedHasUsableNetwork = confirmedHasUsableNetwork,
                 )
             }
             .distinctUntilChanged()
@@ -210,9 +226,7 @@ class AutoTunnelService : LifecycleService() {
                 delay(NO_INTERNET_GRACE_PERIOD_MS.milliseconds)
 
                 reconciliationMutex.withLock {
-                    val currentNetworkState = networkEngine.stableState.value?.state?.toDomain()
-
-                    val stillNoUsableNetwork = currentNetworkState?.hasUsableNetwork == false
+                    val stillNoUsableNetwork = !lastConfirmedHasUsableNetwork
                     val stopOnNoInternetEnabled =
                         autoTunnelRepository.flow.firstOrNull()?.isStopOnNoInternetEnabled == true
 
@@ -249,6 +263,7 @@ class AutoTunnelService : LifecycleService() {
         lifecycleScope.launch(ioDispatcher) {
             autoTunnelStateFlow.collectLatest { state ->
                 reconciliationMutex.withLock {
+                    lastConfirmedHasUsableNetwork = state.confirmedHasUsableNetwork
                     updateFingerprintIfNeeded(state)
                     val rawEvent = engine.evaluate(state)
                     val event = applyOverrides(rawEvent)
@@ -387,5 +402,6 @@ class AutoTunnelService : LifecycleService() {
     companion object {
         private const val NO_INTERNET_GRACE_PERIOD_MS = 10_000L
         private const val CAPTIVE_PORTAL_CLEAR_CONFIRM_MS = 8_000L
+        private const val NO_INTERNET_CONFIRM_MS = 8_000L
     }
 }

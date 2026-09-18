@@ -100,8 +100,6 @@ class AndroidNetworkMonitor(
     private val activeCellularNetworks =
         MutableStateFlow<Map<Network, NetworkCapabilities>>(emptyMap())
 
-    private val requireFreshWifiAfterAirplane = MutableStateFlow(appContext.isAirplaneModeOn())
-
     private val needsUnderlyingWifiFallback: Boolean by lazy {
         val manufacturer = Build.MANUFACTURER.lowercase()
         val brand = Build.BRAND.lowercase()
@@ -122,6 +120,8 @@ class AndroidNetworkMonitor(
                 "blackshark",
                 // Honor
                 "honor",
+                // Samsung
+                "samsung",
             )
 
         manufacturer in problematic || brand in problematic
@@ -189,7 +189,6 @@ class AndroidNetworkMonitor(
         lastKnownActiveNetwork.update { current ->
             if (current is ActiveNetwork.Ethernet) current else ActiveNetwork.Disconnected()
         }
-        requireFreshWifiAfterAirplane.value = true
     }
 
     private val airplaneModeReceiverFlow: Flow<Boolean> = callbackFlow {
@@ -402,9 +401,14 @@ class AndroidNetworkMonitor(
             }
 
     @OptIn(ExperimentalCoroutinesApi::class)
+    // Keyed on airplaneModeState in addition to detectionMethod: an airplane-mode transition
+    // tears down and re-registers the Wi-Fi network callback below, and Android evaluates all
+    // currently-matching networks immediately on a fresh registerNetworkCallback
     private val wifiFlow: Flow<TransportEvent> =
-        combine(configurationListener.detectionMethod, permissionsChangedFlow) { detectionMethod, _
-                ->
+        combine(configurationListener.detectionMethod, permissionsChangedFlow, airplaneModeState) {
+                detectionMethod,
+                _,
+                _ ->
                 detectionMethod
             }
             .flatMapLatest { detectionMethod -> createWifiNetworkCallbackFlow(detectionMethod) }
@@ -416,9 +420,6 @@ class AndroidNetworkMonitor(
             // ignore onAvailable has it doesn't contain detailed network information in
             // capabilities
             Timber.d("WiFi onAvailable: $network")
-            if (requireFreshWifiAfterAirplane.value && wifiManager?.isWifiEnabled == true) {
-                requireFreshWifiAfterAirplane.value = false
-            }
         }
         val onLost: (Network) -> Unit = { network ->
             Timber.d("WiFi onLost: $network")
@@ -426,10 +427,7 @@ class AndroidNetworkMonitor(
             trySend(TransportEvent.Lost(network))
         }
         val onCapabilitiesChanged: (Network, NetworkCapabilities) -> Unit = { network, caps ->
-            if (
-                caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) &&
-                    !requireFreshWifiAfterAirplane.value
-            ) {
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
                 trySend(TransportEvent.CapabilitiesChanged(network, caps))
             }
         }
@@ -716,8 +714,7 @@ class AndroidNetworkMonitor(
                 airplaneModeState,
                 configurationListener.detectionMethod,
                 privateDnsFlow,
-                requireFreshWifiAfterAirplane,
-            ) { networkData, isAirplaneOn, detectionMethod, privateDnsSettings, requireFreshWifi ->
+            ) { networkData, isAirplaneOn, detectionMethod, privateDnsSettings ->
                 val defaultEvent = networkData.defaultNetworkEvent
                 val permissions =
                     when (defaultEvent) {
@@ -779,8 +776,7 @@ class AndroidNetworkMonitor(
                             )
                         }
 
-                        !requireFreshWifi &&
-                            networkData.wifiNetworkEvent is TransportEvent.CapabilitiesChanged &&
+                        networkData.wifiNetworkEvent is TransportEvent.CapabilitiesChanged &&
                             networkData.wifiNetworkEvent.networkCapabilities?.hasTransport(
                                 NetworkCapabilities.TRANSPORT_WIFI
                             ) == true -> {
@@ -794,8 +790,7 @@ class AndroidNetworkMonitor(
                         }
 
                         // Only use default as Wi‑Fi if it is not the VPN network
-                        !requireFreshWifi &&
-                            !defaultIsVpn &&
+                        !defaultIsVpn &&
                             defaultCaps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) &&
                             defaultNetwork != null -> {
                             buildWifiNetwork(
@@ -819,9 +814,7 @@ class AndroidNetworkMonitor(
                             // fallback to legacy detection for default mode
                             // as the capabilities won't have location restricted information
                             val oemFallbackWifiNetwork =
-                                if (
-                                    isVpnActive && needsUnderlyingWifiFallback && !requireFreshWifi
-                                ) {
+                                if (isVpnActive && needsUnderlyingWifiFallback) {
                                     findUnderlyingWifi()?.let { (network, caps) ->
                                         val detectionMethod =
                                             if (detectionMethod == DEFAULT) {

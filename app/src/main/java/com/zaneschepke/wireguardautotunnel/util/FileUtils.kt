@@ -199,7 +199,8 @@ class FileUtils(private val context: Context, private val ioDispatcher: Coroutin
         }
 
     /**
-     * Strips characters that are illegal in a file name on Android (like /) Falls back to a generic name if nothing is left.
+     * Strips characters that are illegal in a file name on Android (like /) Falls back to a generic
+     * name if nothing is left.
      */
     private fun sanitizeFileName(name: String): String {
         val cleaned = name.replace(ILLEGAL_FILENAME_CHARS, "_").trim(' ', '.')

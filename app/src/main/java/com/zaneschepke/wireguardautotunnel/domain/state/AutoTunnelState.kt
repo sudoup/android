@@ -15,4 +15,7 @@ data class AutoTunnelState(
     // Android's captive portal can flap on flaky networks, so this only reports
     // false once the raw signal has held false for a certain duration.
     val confirmedCaptivePortal: Boolean = false,
+    // Debounced separately from networkState.hasUsableNetwork. Android's connectivity
+    // validation can flap true/false for an extended period during network transitions
+    val confirmedHasUsableNetwork: Boolean = false,
 )

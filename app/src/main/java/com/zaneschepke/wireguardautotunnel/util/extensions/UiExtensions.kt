@@ -15,6 +15,7 @@ import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
+import com.wgtunnel.backend.model.BackendMode
 import com.wgtunnel.backend.model.dns.DnsValidationError
 import com.wgtunnel.backend.state.ActiveTunnel
 import com.zaneschepke.networkmonitor.AndroidNetworkMonitor
@@ -153,6 +154,32 @@ fun ActiveTunnel.uptimeText(context: Context, now: Long): String? {
     val uptimeDisplay = startedAt.toUptimeDisplay(now)
 
     return context.getString(R.string.uptime_template, uptimeDisplay)
+}
+
+fun ActiveTunnel.proxyStatusTexts(context: Context): List<String> {
+    val proxyConfig = (mode as? BackendMode.Proxy.Standard)?.proxyConfig ?: return emptyList()
+    return buildList {
+        proxyConfig.socks5?.let { socks5 ->
+            val protected = !socks5.username.isNullOrBlank() || !socks5.password.isNullOrBlank()
+            add(
+                context.getString(
+                    if (protected) R.string.socks5_proxy_protected_template
+                    else R.string.socks5_proxy_template,
+                    "${socks5.host}:${socks5.port}",
+                )
+            )
+        }
+        proxyConfig.http?.let { http ->
+            val protected = !http.username.isNullOrBlank() || !http.password.isNullOrBlank()
+            add(
+                context.getString(
+                    if (protected) R.string.http_proxy_protected_template
+                    else R.string.http_proxy_template,
+                    "${http.host}:${http.port}",
+                )
+            )
+        }
+    }
 }
 
 fun List<TunnelConfig>.asFileExportName(): Pair<String, String> {
