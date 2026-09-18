@@ -41,6 +41,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.koin.android.ext.android.inject
@@ -65,9 +66,6 @@ class AutoTunnelService : LifecycleService() {
     private val settingsRepository: GeneralSettingRepository by inject()
     private val tunnelsRepository: TunnelRepository by inject()
     private val tunnelCoordinator: TunnelCoordinator by inject()
-    private var autoTunnelJob: Job? = null
-    private var permissionsJob: Job? = null
-    private var overridesJob: Job? = null
     private var noInternetStopJob: Job? = null
 
     private data class PermissionWarningState(
@@ -86,7 +84,11 @@ class AutoTunnelService : LifecycleService() {
 
     @OptIn(FlowPreview::class)
     private val autoTunnelStateFlow: Flow<AutoTunnelState> by lazy {
-        val networkFlow = networkEngine.stableState.mapNotNull { it?.state?.toDomain() }
+        // Add stabilization to network identity
+        val networkFlow =
+            networkEngine.stableState
+                .mapNotNull { it?.state?.toDomain() }
+                .debounce(NETWORK_IDENTITY_SETTLE_MS.milliseconds)
 
         val settingsFlow = combineSettings()
 
@@ -141,6 +143,7 @@ class AutoTunnelService : LifecycleService() {
         super.onCreate()
         stateHolder.setActive(true)
         launchWatcherNotification()
+        observeActiveState()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -154,13 +157,19 @@ class AutoTunnelService : LifecycleService() {
         stateHolder.setActive(true)
         AutoTunnelTileRefresher.refresh(this)
         launchWatcherNotification()
-        autoTunnelJob?.cancel()
-        autoTunnelJob = startAutoTunnelStateJob()
-        permissionsJob?.cancel()
-        permissionsJob = startLocationPermissionsNotificationJob()
-        overridesJob?.cancel()
-        overridesJob = startUserOverrideJob()
     }
+
+    private fun observeActiveState() =
+        lifecycleScope.launch(ioDispatcher) {
+            stateHolder.active.collectLatest { isActive ->
+                if (!isActive) return@collectLatest
+                supervisorScope {
+                    launch { runAutoTunnelStateJob() }
+                    launch { runLocationPermissionsNotificationJob() }
+                    launch { runUserOverrideJob() }
+                }
+            }
+        }
 
     fun stop() {
         stateHolder.setActive(false)
@@ -175,19 +184,18 @@ class AutoTunnelService : LifecycleService() {
         super.onDestroy()
     }
 
-    private fun startUserOverrideJob(): Job =
-        lifecycleScope.launch(ioDispatcher) {
-            tunnelCoordinator.userOverrideFlow.collect {
-                reconciliationMutex.withLock {
-                    if (!hasUserOverride) {
-                        Timber.d(
-                            "User manually overrode Auto Tunnel on current network. Pausing auto decisions."
-                        )
-                    }
-                    hasUserOverride = true
+    private suspend fun runUserOverrideJob() {
+        tunnelCoordinator.userOverrideFlow.collect {
+            reconciliationMutex.withLock {
+                if (!hasUserOverride) {
+                    Timber.d(
+                        "User manually overrode Auto Tunnel on current network. Pausing auto decisions."
+                    )
                 }
+                hasUserOverride = true
             }
         }
+    }
 
     private fun launchWatcherNotification(
         description: String = getString(R.string.monitoring_state_changes)
@@ -259,19 +267,24 @@ class AutoTunnelService : LifecycleService() {
         noInternetStopJob = null
     }
 
-    private fun startAutoTunnelStateJob(): Job =
-        lifecycleScope.launch(ioDispatcher) {
-            autoTunnelStateFlow.collectLatest { state ->
-                reconciliationMutex.withLock {
-                    lastConfirmedHasUsableNetwork = state.confirmedHasUsableNetwork
-                    updateFingerprintIfNeeded(state)
-                    val rawEvent = engine.evaluate(state)
-                    val event = applyOverrides(rawEvent)
-                    Timber.d("AutoTunnel reconciliation event: $event")
-                    handleAutoTunnelEvent(event)
-                }
+    private suspend fun runAutoTunnelStateJob() {
+        // Add startup settle to prevent flapping after OS kill
+        var hasSettled = false
+        autoTunnelStateFlow.collectLatest { state ->
+            if (!hasSettled) {
+                delay(STARTUP_SETTLE_MS)
+                hasSettled = true
+            }
+            reconciliationMutex.withLock {
+                lastConfirmedHasUsableNetwork = state.confirmedHasUsableNetwork
+                updateFingerprintIfNeeded(state)
+                val rawEvent = engine.evaluate(state)
+                val event = applyOverrides(rawEvent)
+                Timber.d("AutoTunnel reconciliation event: $event")
+                handleAutoTunnelEvent(event)
             }
         }
+    }
 
     private fun updateFingerprintIfNeeded(state: AutoTunnelState) {
         val needsBSSIDAwareness =
@@ -308,77 +321,75 @@ class AutoTunnelService : LifecycleService() {
             .distinctUntilChanged()
     }
 
-    private fun startLocationPermissionsNotificationJob(): Job =
-        lifecycleScope.launch(ioDispatcher) {
-            autoTunnelStateFlow
-                .map { state ->
-                    PermissionWarningState(
-                        detectionMethod = state.settings.wifiDetectionMethod.to(),
-                        locationServicesEnabled = state.networkState.locationServicesEnabled,
-                        locationPermissionsEnabled = state.networkState.locationPermissionGranted,
-                        ssidReadRequired =
-                            state.tunnels.any { it.tunnelNetworks.isNotEmpty() } ||
-                                state.settings.trustedNetworkSSIDs.isNotEmpty(),
-                    )
-                }
-                .distinctUntilChanged()
-                .collect { state ->
-                    val wifiMode = state.detectionMethod
+    private suspend fun runLocationPermissionsNotificationJob() {
+        autoTunnelStateFlow
+            .map { state ->
+                PermissionWarningState(
+                    detectionMethod = state.settings.wifiDetectionMethod.to(),
+                    locationServicesEnabled = state.networkState.locationServicesEnabled,
+                    locationPermissionsEnabled = state.networkState.locationPermissionGranted,
+                    ssidReadRequired =
+                        state.tunnels.any { it.tunnelNetworks.isNotEmpty() } ||
+                            state.settings.trustedNetworkSSIDs.isNotEmpty(),
+                )
+            }
+            .distinctUntilChanged()
+            .collect { state ->
+                val wifiMode = state.detectionMethod
 
-                    if (
-                        wifiMode == AndroidNetworkMonitor.WifiDetectionMethod.DEFAULT ||
-                            wifiMode == AndroidNetworkMonitor.WifiDetectionMethod.LEGACY
-                    ) {
+                if (
+                    wifiMode == AndroidNetworkMonitor.WifiDetectionMethod.DEFAULT ||
+                        wifiMode == AndroidNetworkMonitor.WifiDetectionMethod.LEGACY
+                ) {
 
-                        if (!state.ssidReadRequired) {
-                            notificationService.remove(
-                                NotificationService.AUTO_TUNNEL_LOCATION_SERVICES_ID
-                            )
-                            notificationService.remove(
-                                NotificationService.AUTO_TUNNEL_LOCATION_PERMISSION_ID
-                            )
-                            return@collect
-                        }
+                    if (!state.ssidReadRequired) {
+                        notificationService.remove(
+                            NotificationService.AUTO_TUNNEL_LOCATION_SERVICES_ID
+                        )
+                        notificationService.remove(
+                            NotificationService.AUTO_TUNNEL_LOCATION_PERMISSION_ID
+                        )
+                        return@collect
+                    }
 
-                        if (!state.locationPermissionsEnabled) {
-                            val notification =
-                                notificationService.createNotification(
-                                    AndroidNotificationService.NotificationChannels.AutoTunnel,
-                                    title = getString(R.string.warning),
-                                    description = getString(R.string.location_permissions_missing),
-                                )
+                    if (!state.locationPermissionsEnabled) {
+                        val notification =
+                            notificationService.createNotification(
+                                AndroidNotificationService.NotificationChannels.AutoTunnel,
+                                title = getString(R.string.warning),
+                                description = getString(R.string.location_permissions_missing),
+                            )
 
-                            notificationService.show(
-                                NotificationService.AUTO_TUNNEL_LOCATION_PERMISSION_ID,
-                                notification,
-                            )
-                        } else {
-                            notificationService.remove(
-                                NotificationService.AUTO_TUNNEL_LOCATION_PERMISSION_ID
-                            )
-                        }
+                        notificationService.show(
+                            NotificationService.AUTO_TUNNEL_LOCATION_PERMISSION_ID,
+                            notification,
+                        )
+                    } else {
+                        notificationService.remove(
+                            NotificationService.AUTO_TUNNEL_LOCATION_PERMISSION_ID
+                        )
+                    }
 
-                        if (!state.locationServicesEnabled) {
-                            val notification =
-                                notificationService.createNotification(
-                                    AndroidNotificationService.NotificationChannels.AutoTunnel,
-                                    title = getString(R.string.warning),
-                                    description =
-                                        getString(R.string.location_services_not_detected),
-                                )
+                    if (!state.locationServicesEnabled) {
+                        val notification =
+                            notificationService.createNotification(
+                                AndroidNotificationService.NotificationChannels.AutoTunnel,
+                                title = getString(R.string.warning),
+                                description = getString(R.string.location_services_not_detected),
+                            )
 
-                            notificationService.show(
-                                NotificationService.AUTO_TUNNEL_LOCATION_SERVICES_ID,
-                                notification,
-                            )
-                        } else {
-                            notificationService.remove(
-                                NotificationService.AUTO_TUNNEL_LOCATION_SERVICES_ID
-                            )
-                        }
+                        notificationService.show(
+                            NotificationService.AUTO_TUNNEL_LOCATION_SERVICES_ID,
+                            notification,
+                        )
+                    } else {
+                        notificationService.remove(
+                            NotificationService.AUTO_TUNNEL_LOCATION_SERVICES_ID
+                        )
                     }
                 }
-        }
+            }
+    }
 
     private suspend fun handleAutoTunnelEvent(event: AutoTunnelEvent) {
         when (event) {
@@ -403,5 +414,7 @@ class AutoTunnelService : LifecycleService() {
         private const val NO_INTERNET_GRACE_PERIOD_MS = 10_000L
         private const val CAPTIVE_PORTAL_CLEAR_CONFIRM_MS = 8_000L
         private const val NO_INTERNET_CONFIRM_MS = 8_000L
+        private const val STARTUP_SETTLE_MS = 2_000L
+        private const val NETWORK_IDENTITY_SETTLE_MS = 500L
     }
 }

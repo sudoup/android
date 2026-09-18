@@ -9,11 +9,16 @@ import kotlinx.coroutines.flow.collectLatest
 /**
  * Passes `true` through immediately, but only passes `false` through after the upstream has held
  * `false` continuously for [timeout] with no intervening `true`.
+ *
+ * The very first value collected is always passed through immediately, regardless of its value. The
+ * hold only protects against a previously-confirmed `true` flapping to `false` and back.
  */
 fun Flow<Boolean>.debounceFalling(timeout: Duration): Flow<Boolean> = channelFlow {
+    var isFirst = true
     collectLatest { value ->
-        if (value) {
-            send(true)
+        if (value || isFirst) {
+            isFirst = false
+            send(value)
         } else {
             delay(timeout)
             send(false)
