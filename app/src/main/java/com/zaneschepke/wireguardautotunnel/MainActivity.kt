@@ -90,6 +90,7 @@ import com.zaneschepke.wireguardautotunnel.domain.sideeffect.NotificationPending
 import com.zaneschepke.wireguardautotunnel.notification.NotificationService
 import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.EXTRA_AUTO_UPDATE
 import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.EXTRA_OPEN_SUPPORT
+import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.EXTRA_SHOW_UPDATE
 import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.UPDATE_AVAILABLE_NOTIFICATION_ID
 import com.zaneschepke.wireguardautotunnel.service.tile.TunnelTileRefresher
 import com.zaneschepke.wireguardautotunnel.ui.LocalIsAndroidTV
@@ -184,6 +185,7 @@ class MainActivity : AppCompatActivity() {
 
     private val snackbarChannel = Channel<GlobalSideEffect.Snackbar>(Channel.UNLIMITED)
     private val supportDeepLinkChannel = Channel<Boolean>(Channel.BUFFERED)
+    private val showUpdateChannel = Channel<Unit>(Channel.BUFFERED)
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -221,6 +223,9 @@ class MainActivity : AppCompatActivity() {
             var showVpnPermissionDialog by remember { mutableStateOf(false) }
             var coldStartAutoUpdate by remember {
                 mutableStateOf(intent?.getBooleanExtra(EXTRA_AUTO_UPDATE, false) == true)
+            }
+            var coldStartShowUpdate by remember {
+                mutableStateOf(intent?.getBooleanExtra(EXTRA_SHOW_UPDATE, false) == true)
             }
             var vpnPermissionDenied by remember { mutableStateOf(false) }
             var requestingTunnelMode by remember {
@@ -295,7 +300,12 @@ class MainActivity : AppCompatActivity() {
             val startingStack = buildList {
                 add(Route.Tunnels)
                 if (intent?.action == Intent.ACTION_APPLICATION_PREFERENCES) add(Route.Settings)
-                if (intent?.getBooleanExtra(EXTRA_OPEN_SUPPORT, false) == true) add(Route.Support)
+                if (
+                    intent?.getBooleanExtra(EXTRA_OPEN_SUPPORT, false) == true ||
+                        intent?.getBooleanExtra(EXTRA_SHOW_UPDATE, false) == true
+                ) {
+                    add(Route.Support)
+                }
                 if (uiState.pinLockEnabled) add(Route.Lock)
             }
 
@@ -347,6 +357,23 @@ class MainActivity : AppCompatActivity() {
                 coldStartAutoUpdate = false
                 notificationService.remove(UPDATE_AVAILABLE_NOTIFICATION_ID)
                 viewModel.requestSupportAutoUpdate(startDownload = true)
+            }
+
+            LaunchedEffect(uiState.isAppLoaded, coldStartShowUpdate) {
+                if (!uiState.isAppLoaded || !coldStartShowUpdate) return@LaunchedEffect
+                coldStartShowUpdate = false
+                // Kept across recreation otherwise, which would scroll again on rotation
+                intent?.removeExtra(EXTRA_SHOW_UPDATE)
+                viewModel.requestShowUpdateStatus()
+            }
+
+            LaunchedEffect(Unit) {
+                for (unit in showUpdateChannel) {
+                    if (previousRoute !is Route.Support) {
+                        navController.push(Route.Support)
+                    }
+                    viewModel.requestShowUpdateStatus()
+                }
             }
 
             LaunchedEffect(Unit) {
@@ -880,6 +907,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun enqueueSupportDeepLink(intent: Intent?) {
+        if (intent?.getBooleanExtra(EXTRA_SHOW_UPDATE, false) == true) {
+            intent.removeExtra(EXTRA_SHOW_UPDATE)
+            showUpdateChannel.trySend(Unit)
+        }
         if (intent?.getBooleanExtra(EXTRA_OPEN_SUPPORT, false) != true) return
         val autoUpdate = intent.getBooleanExtra(EXTRA_AUTO_UPDATE, false)
         intent.removeExtra(EXTRA_OPEN_SUPPORT)

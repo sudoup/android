@@ -88,7 +88,7 @@ val appModule = module {
     viewModelOf(::SettingsViewModel)
     viewModelOf(::SharedAppViewModel)
     viewModel { (id: Int) -> SplitTunnelViewModel(get(), get(), get(), id) }
-    viewModel { SupportViewModel(get(), get()) }
+    viewModel { SupportViewModel(get(), get(), get()) }
     viewModel { (id: Int) -> TunnelViewModel(get(), get(), id) }
 
     singleOf(::AutoTunnelStateHolder)

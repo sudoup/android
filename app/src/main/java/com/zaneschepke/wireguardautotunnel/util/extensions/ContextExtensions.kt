@@ -153,15 +153,17 @@ fun Context.requestInstallPackagesPermission() {
     startActivity(intent)
 }
 
-fun Context.installApk(apkFile: File) {
+fun Context.apkInstallIntent(apkFile: File): Intent {
     val apkUri = FileProvider.getUriForFile(this, BuildConfig.FILE_PROVIDER_AUTHORITY, apkFile)
-    val intent =
-        Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(apkUri, "application/vnd.android.package-archive")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-    startActivity(intent)
+    return Intent(Intent.ACTION_VIEW).apply {
+        setDataAndType(apkUri, "application/vnd.android.package-archive")
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+}
+
+fun Context.installApk(apkFile: File) {
+    startActivity(apkInstallIntent(apkFile))
 }
 
 fun Context.launchPlayStoreListing(): Result<Unit> = runCatching {
