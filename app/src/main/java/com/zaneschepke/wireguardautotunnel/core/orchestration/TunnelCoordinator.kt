@@ -59,8 +59,13 @@ class TunnelCoordinator(
     scope: CoroutineScope,
 ) {
 
-    private val _userOverrideFlow = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val userOverrideFlow = _userOverrideFlow.asSharedFlow()
+    // Invoked synchronously inside the user action's lock, so an auto tunnel action queued behind
+    // it already sees the override when it checks its guard
+    @Volatile var userOverrideListener: (() -> Unit)? = null
+
+    private fun markUserOverride() {
+        userOverrideListener?.invoke()
+    }
 
     data class RuntimeSettingsSnapshot(
         val general: GeneralSettings,
@@ -185,6 +190,10 @@ class TunnelCoordinator(
     private val _errors = MutableSharedFlow<TunnelErrorEvent>()
     val errors = _errors.asSharedFlow()
 
+    suspend fun awaitReady() {
+        bootstrapCoordinator.isReady.first { it }
+    }
+
     suspend fun startTunnel(
         config: TunnelConfig,
         source: TunnelActionSource = TunnelActionSource.USER,
@@ -193,10 +202,14 @@ class TunnelCoordinator(
         bootstrapCoordinator.isReady.first { it }
 
         if (source == TunnelActionSource.USER) {
-            _userOverrideFlow.tryEmit(Unit)
+            markUserOverride()
         }
 
-        // enforce single tunnel, for now — do not clear last-active here; start success replaces it
+        startExclusive(config, source)
+    }
+
+    // enforce single tunnel, for now. We do not clear the last active here as start success replaces it
+    private suspend fun startExclusive(config: TunnelConfig, source: TunnelActionSource) {
         if (backendStatus.value.activeTunnels.isNotEmpty()) {
             stopActiveTunnelsInternal(source, persistLastActive = false)
         }
@@ -207,15 +220,32 @@ class TunnelCoordinator(
     suspend fun stopTunnel(id: Int, source: TunnelActionSource = TunnelActionSource.USER) =
         tunnelMutex.withLock {
             if (source == TunnelActionSource.USER) {
-                _userOverrideFlow.tryEmit(Unit)
+                markUserOverride()
             }
             stopTunnelInternal(id, source)
         }
 
+    /** Start/stop without taking [tunnelMutex], only reachable through [exclusively]. */
+    inner class Exclusive internal constructor() {
+        suspend fun start(config: TunnelConfig, source: TunnelActionSource) =
+            startExclusive(config, source)
+
+        suspend fun stop(id: Int, source: TunnelActionSource) = stopTunnelInternal(id, source)
+    }
+
+    private val exclusive = Exclusive()
+
+    /**
+     * Runs [block] holding the lock every start/stop holds, so a caller can decide and act without
+     * anything changing in between.
+     */
+    suspend fun <T> exclusively(block: suspend (Exclusive) -> T): T =
+        tunnelMutex.withLock { block(exclusive) }
+
     suspend fun stopActiveTunnels(source: TunnelActionSource = TunnelActionSource.USER) =
         tunnelMutex.withLock {
             if (source == TunnelActionSource.USER) {
-                _userOverrideFlow.tryEmit(Unit)
+                markUserOverride()
             }
             stopActiveTunnelsInternal(source, persistLastActive = true)
         }
@@ -332,7 +362,7 @@ class TunnelCoordinator(
         source: TunnelActionSource = TunnelActionSource.USER,
     ) = tunnelMutex.withLock {
         if (source == TunnelActionSource.USER) {
-            _userOverrideFlow.tryEmit(Unit)
+            markUserOverride()
         }
 
         val isActive =
@@ -348,7 +378,7 @@ class TunnelCoordinator(
     suspend fun toggleActiveTunnels(source: TunnelActionSource = TunnelActionSource.USER) =
         tunnelMutex.withLock {
             if (source == TunnelActionSource.USER) {
-                _userOverrideFlow.tryEmit(Unit)
+                markUserOverride()
             }
 
             val active = tunnelProvider.backendStatus.value.activeTunnels
