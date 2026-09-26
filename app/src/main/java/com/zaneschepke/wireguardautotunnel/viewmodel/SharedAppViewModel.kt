@@ -48,8 +48,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.firstOrNull
@@ -84,6 +86,18 @@ class SharedAppViewModel(
 
     fun requestSupportAutoUpdate(startDownload: Boolean) {
         _supportAutoUpdateRequests.tryEmit(startDownload)
+    }
+
+    // Sticky, the Support screen may not be composed yet when this is requested
+    private val _showUpdateStatusRequested = MutableStateFlow(false)
+    val showUpdateStatusRequested = _showUpdateStatusRequested.asStateFlow()
+
+    fun requestShowUpdateStatus() {
+        _showUpdateStatusRequested.value = true
+    }
+
+    fun consumeShowUpdateStatus() {
+        _showUpdateStatusRequested.value = false
     }
 
     val tunnelsUiState =

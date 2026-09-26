@@ -21,7 +21,12 @@ import com.zaneschepke.wireguardautotunnel.domain.enums.NotificationAction
 import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.EXTRA_AUTO_UPDATE
 import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.EXTRA_ID
 import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.EXTRA_OPEN_SUPPORT
+import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.EXTRA_SHOW_UPDATE
 import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.UPDATE_AVAILABLE_NOTIFICATION_ID
+import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.UPDATE_FAILED_NOTIFICATION_ID
+import com.zaneschepke.wireguardautotunnel.notification.NotificationService.Companion.UPDATE_READY_NOTIFICATION_ID
+import com.zaneschepke.wireguardautotunnel.util.extensions.apkInstallIntent
+import java.io.File
 
 class AndroidNotificationService(override val context: Context) : NotificationService {
 
@@ -160,6 +165,50 @@ class AndroidNotificationService(override val context: Context) : NotificationSe
                 .addAction(updateAction)
                 .build()
         show(UPDATE_AVAILABLE_NOTIFICATION_ID, notification)
+    }
+
+    override fun showUpdateReadyToInstall(apk: File) {
+        val installIntent =
+            PendingIntent.getActivity(
+                context,
+                UPDATE_READY_NOTIFICATION_ID,
+                context.apkInstallIntent(apk),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+        val notification =
+            NotificationChannels.App.asBuilder()
+                .setContentTitle(context.getString(R.string.update_ready_to_install))
+                .setContentText(context.getString(R.string.update_ready_message))
+                .setContentIntent(installIntent)
+                .setSmallIcon(R.drawable.qs_logo)
+                .setAutoCancel(true)
+                .setOnlyAlertOnce(true)
+                .build()
+        remove(UPDATE_AVAILABLE_NOTIFICATION_ID)
+        show(UPDATE_READY_NOTIFICATION_ID, notification)
+    }
+
+    override fun showUpdateDownloadFailed() {
+        // Opens Support at the update row, the user decides whether to try again
+        val openIntent =
+            PendingIntent.getActivity(
+                context,
+                UPDATE_FAILED_NOTIFICATION_ID,
+                Intent(context, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    putExtra(EXTRA_SHOW_UPDATE, true)
+                },
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+        val notification =
+            NotificationChannels.App.asBuilder()
+                .setContentTitle(context.getString(R.string.update_download_failed))
+                .setContentIntent(openIntent)
+                .setSmallIcon(R.drawable.qs_logo)
+                .setAutoCancel(true)
+                .setOnlyAlertOnce(true)
+                .build()
+        show(UPDATE_FAILED_NOTIFICATION_ID, notification)
     }
 
     private fun NotificationChannels.asBuilder(): Builder {

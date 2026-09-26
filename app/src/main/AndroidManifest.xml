@@ -256,6 +256,15 @@
 				<action android:name="com.zaneschepke.wireguardautotunnel.STOP_KILL_SWITCH" />
 			</intent-filter>
 		</receiver>
+		<!--DownloadManager events for in-app updates. Must be exported -->
+		<receiver
+			android:name=".core.broadcast.UpdateDownloadReceiver"
+			android:exported="true" tools:ignore="ExportedReceiver">
+			<intent-filter>
+				<action android:name="android.intent.action.DOWNLOAD_COMPLETE" />
+				<action android:name="android.intent.action.DOWNLOAD_NOTIFICATION_CLICKED" />
+			</intent-filter>
+		</receiver>
 		<receiver
 			android:name=".core.broadcast.NotificationActionReceiver"
 			android:exported="false"

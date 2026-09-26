@@ -208,7 +208,8 @@ class TunnelCoordinator(
         startExclusive(config, source)
     }
 
-    // enforce single tunnel, for now. We do not clear the last active here as start success replaces it
+    // enforce single tunnel, for now. We do not clear the last active here as start success
+    // replaces it
     private suspend fun startExclusive(config: TunnelConfig, source: TunnelActionSource) {
         if (backendStatus.value.activeTunnels.isNotEmpty()) {
             stopActiveTunnelsInternal(source, persistLastActive = false)
@@ -239,8 +240,9 @@ class TunnelCoordinator(
      * Runs [block] holding the lock every start/stop holds, so a caller can decide and act without
      * anything changing in between.
      */
-    suspend fun <T> exclusively(block: suspend (Exclusive) -> T): T =
-        tunnelMutex.withLock { block(exclusive) }
+    suspend fun <T> exclusively(block: suspend (Exclusive) -> T): T = tunnelMutex.withLock {
+        block(exclusive)
+    }
 
     suspend fun stopActiveTunnels(source: TunnelActionSource = TunnelActionSource.USER) =
         tunnelMutex.withLock {
