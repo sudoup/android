@@ -134,7 +134,6 @@ import com.zaneschepke.wireguardautotunnel.ui.screens.tunnels.settings.TunnelSet
 import com.zaneschepke.wireguardautotunnel.ui.screens.tunnels.settings.config.ConfigScreen
 import com.zaneschepke.wireguardautotunnel.ui.screens.tunnels.settings.config.edit.ConfigEditScreen
 import com.zaneschepke.wireguardautotunnel.ui.screens.tunnels.settings.ipv6.IPv6Screen
-import com.zaneschepke.wireguardautotunnel.ui.screens.tunnels.sort.SortScreen
 import com.zaneschepke.wireguardautotunnel.ui.screens.tunnels.splittunnel.SplitTunnelScreen
 import com.zaneschepke.wireguardautotunnel.ui.theme.AlertRed
 import com.zaneschepke.wireguardautotunnel.ui.theme.Heart
@@ -638,7 +637,6 @@ class MainActivity : AppCompatActivity() {
                                                     PinLockScreen()
                                                 }
                                                 entry<Route.Tunnels> { TunnelsScreen() }
-                                                entry<Route.Sort> { SortScreen() }
                                                 entry<Route.TunnelSettings> { key ->
                                                     val viewModel: TunnelViewModel =
                                                         koinViewModel(

@@ -90,8 +90,6 @@ sealed class Route : NavKey {
             get() = true
     }
 
-    @Keep @Serializable data object Sort : Route()
-
     @Keep @Serializable data object Settings : Route()
 
     @Keep
@@ -189,7 +187,6 @@ enum class Tab(
         fun fromRoute(route: Route): Tab =
             when (route) {
                 is Route.Tunnels,
-                Route.Sort,
                 is Route.TunnelSettings,
                 is Route.ConfigEdit,
                 is Route.Lock,

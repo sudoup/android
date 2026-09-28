@@ -18,6 +18,7 @@ import com.zaneschepke.wireguardautotunnel.data.repository.RoomLockdownSettingsR
 import com.zaneschepke.wireguardautotunnel.data.repository.RoomMonitoringSettingsRepository
 import com.zaneschepke.wireguardautotunnel.data.repository.RoomProxySettingsRepository
 import com.zaneschepke.wireguardautotunnel.data.repository.RoomSettingsRepository
+import com.zaneschepke.wireguardautotunnel.data.repository.RoomTunnelGroupRepository
 import com.zaneschepke.wireguardautotunnel.data.repository.RoomTunnelRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.AppStateRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.AutoTunnelSettingsRepository
@@ -27,6 +28,7 @@ import com.zaneschepke.wireguardautotunnel.domain.repository.InstalledPackageRep
 import com.zaneschepke.wireguardautotunnel.domain.repository.LockdownSettingsRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.MonitoringSettingsRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.ProxySettingsRepository
+import com.zaneschepke.wireguardautotunnel.domain.repository.TunnelGroupRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.TunnelRepository
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.annotation.KoinExperimentalAPI
@@ -65,6 +67,7 @@ val databaseModule = module {
     single { get<AppDatabase>().monitoringSettingsDao() }
     single { get<AppDatabase>().proxySettingsDoa() }
     single { get<AppDatabase>().tunnelConfigDoa() }
+    single { get<AppDatabase>().tunnelGroupDao() }
 
     single { DataStoreManager(androidContext(), get(named(Dispatcher.IO))) }
 
@@ -78,6 +81,7 @@ val databaseModule = module {
     singleOf(::RoomProxySettingsRepository) bind ProxySettingsRepository::class
     singleOf(::RoomSettingsRepository) bind GeneralSettingRepository::class
     singleOf(::RoomTunnelRepository) bind TunnelRepository::class
+    singleOf(::RoomTunnelGroupRepository) bind TunnelGroupRepository::class
     viewModelScope {
         scoped<InstalledPackageRepository> {
             InstalledAndroidPackageRepository(androidContext(), get(named(Dispatcher.IO)))

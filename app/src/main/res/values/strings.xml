@@ -233,6 +233,7 @@
     <string name="sort">Sort</string>
     <string name="sort_by_latency">Sort by latency</string>
     <string name="pinging_servers">Pinging servers…</string>
+    <string name="ping_unreachable">unreachable</string>
     <string name="drag_handle">Drag Handle</string>
     <string name="move_up">Move Up</string>
     <string name="move_down">Move Down</string>
@@ -656,4 +657,26 @@
     <string name="notification_recovery_format">Recovery attempts: %1$d</string>
     <string name="notification_failure_tint">Handshake warning</string>
     <string name="notification_failure_tint_desc">Tint the notification icon when a tunnel has a handshake failure</string>
+    <string name="add_group">Add group</string>
+    <string name="group_name">Group name</string>
+    <string name="rename_group">Rename group</string>
+    <string name="delete_group">Delete group</string>
+    <string name="delete_group_message">Tunnels in this group will be ungrouped.</string>
+    <string name="delete_group_and_tunnels">Delete group and tunnels</string>
+    <string name="delete_group_and_tunnels_message">This will delete the group and all tunnels inside it.</string>
+    <string name="export_group">Export group</string>
+    <string name="move_to_group">Move to group</string>
+    <string name="ungroup">Ungroup</string>
+    <string name="reorder">Reorder</string>
+    <string name="expand_group">Expand group</string>
+    <string name="collapse_group">Collapse group</string>
+    <string name="group_with_count">%1$s (%2$d)</string>
+    <string name="group_active_count">%1$d active</string>
+    <string name="add_group_ellipsis">Add group…</string>
+    <string name="no_tunnels_in_group">This group has no tunnels to export</string>
+    <string name="n_selected">%d selected</string>
+    <plurals name="group_tunnel_count">
+        <item quantity="one">%d tunnel</item>
+        <item quantity="other">%d tunnels</item>
+    </plurals>
 </resources>

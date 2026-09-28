@@ -5,7 +5,10 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "tunnel_config", indices = [Index(value = ["name"], unique = true)])
+@Entity(
+    tableName = "tunnel_config",
+    indices = [Index(value = ["name"], unique = true), Index(value = ["group_id"])],
+)
 data class TunnelConfig(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     @ColumnInfo(name = "name") val name: String,
@@ -27,6 +30,7 @@ data class TunnelConfig(
     @ColumnInfo(name = "tunnel_bssids", defaultValue = "[]")
     val tunnelBSSIDs: List<String> = emptyList(),
     @ColumnInfo(name = "is_ddns_tunnel", defaultValue = "0") val isDDNSTunnel: Boolean = false,
+    @ColumnInfo(name = "group_id", defaultValue = "NULL") val groupId: Int? = null,
 ) {
     companion object {
         const val GLOBAL_CONFIG_NAME = "4675ab06-903a-438b-8485-6ea4187a9512"

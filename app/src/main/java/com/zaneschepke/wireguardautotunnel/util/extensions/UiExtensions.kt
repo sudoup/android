@@ -24,6 +24,7 @@ import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelDnsMode
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelMode
 import com.zaneschepke.wireguardautotunnel.domain.enums.WifiDetectionMethod
 import com.zaneschepke.wireguardautotunnel.domain.model.TunnelConfig
+import com.zaneschepke.wireguardautotunnel.domain.model.TunnelGroup
 import com.zaneschepke.wireguardautotunnel.ui.state.DisplayTunnelState
 import com.zaneschepke.wireguardautotunnel.util.FileUtils
 import java.time.Instant
@@ -191,3 +192,6 @@ fun List<TunnelConfig>.asFileExportName(): Pair<String, String> {
             FileUtils.ZIP_FILE_MIME_TYPE
     }
 }
+
+// Always a zip, even with a single tunnel inside, and named for the group rather than the tunnel
+fun TunnelGroup.asExportFileName(): Pair<String, String> = "$name.zip" to FileUtils.ZIP_FILE_MIME_TYPE

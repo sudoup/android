@@ -15,6 +15,7 @@ import com.zaneschepke.wireguardautotunnel.data.dao.LockdownSettingsDao
 import com.zaneschepke.wireguardautotunnel.data.dao.MonitoringSettingsDao
 import com.zaneschepke.wireguardautotunnel.data.dao.ProxySettingsDao
 import com.zaneschepke.wireguardautotunnel.data.dao.TunnelConfigDao
+import com.zaneschepke.wireguardautotunnel.data.dao.TunnelGroupDao
 import com.zaneschepke.wireguardautotunnel.data.entity.AutoTunnelSettings
 import com.zaneschepke.wireguardautotunnel.data.entity.DnsSettings
 import com.zaneschepke.wireguardautotunnel.data.entity.GeneralSettings
@@ -22,11 +23,13 @@ import com.zaneschepke.wireguardautotunnel.data.entity.LockdownSettings
 import com.zaneschepke.wireguardautotunnel.data.entity.MonitoringSettings
 import com.zaneschepke.wireguardautotunnel.data.entity.ProxySettings
 import com.zaneschepke.wireguardautotunnel.data.entity.TunnelConfig
+import com.zaneschepke.wireguardautotunnel.data.entity.TunnelGroup
 
 @Database(
     entities =
         [
             TunnelConfig::class,
+            TunnelGroup::class,
             ProxySettings::class,
             GeneralSettings::class,
             AutoTunnelSettings::class,
@@ -34,7 +37,7 @@ import com.zaneschepke.wireguardautotunnel.data.entity.TunnelConfig
             DnsSettings::class,
             LockdownSettings::class,
         ],
-    version = 39,
+    version = 40,
     autoMigrations =
         [
             AutoMigration(from = 1, to = 2),
@@ -72,12 +75,15 @@ import com.zaneschepke.wireguardautotunnel.data.entity.TunnelConfig
             AutoMigration(from = 36, to = 37),
             AutoMigration(from = 37, to = 38),
             AutoMigration(from = 38, to = 39),
+            AutoMigration(from = 39, to = 40),
         ],
     exportSchema = true,
 )
 @TypeConverters(DatabaseConverters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun tunnelConfigDoa(): TunnelConfigDao
+
+    abstract fun tunnelGroupDao(): TunnelGroupDao
 
     abstract fun proxySettingsDoa(): ProxySettingsDao
 
