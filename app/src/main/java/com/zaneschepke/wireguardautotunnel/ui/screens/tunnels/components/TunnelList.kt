@@ -61,11 +61,11 @@ import com.zaneschepke.wireguardautotunnel.ui.navigation.Route
 import com.zaneschepke.wireguardautotunnel.ui.state.DisplayTunnelState
 import com.zaneschepke.wireguardautotunnel.ui.state.TunnelListRow
 import com.zaneschepke.wireguardautotunnel.ui.state.TunnelsUiState
+import com.zaneschepke.wireguardautotunnel.ui.state.applyDisplayedOrder
+import com.zaneschepke.wireguardautotunnel.ui.state.buildTunnelListRows
 import com.zaneschepke.wireguardautotunnel.ui.theme.AlertRed
 import com.zaneschepke.wireguardautotunnel.ui.theme.SilverTree
 import com.zaneschepke.wireguardautotunnel.ui.theme.Straw
-import com.zaneschepke.wireguardautotunnel.ui.state.applyDisplayedOrder
-import com.zaneschepke.wireguardautotunnel.ui.state.buildTunnelListRows
 import com.zaneschepke.wireguardautotunnel.util.extensions.openWebUrl
 import com.zaneschepke.wireguardautotunnel.viewmodel.SharedAppViewModel
 import sh.calvin.reorderable.DragGestureDetector
@@ -177,45 +177,44 @@ fun TunnelList(
         itemsIndexed(items = rows, key = { _, row -> row.key }) { index, row ->
             if (uiState.isReorderMode) {
                 ReorderableItem(reorderableLazyListState, row.key) { isDragging ->
-                    val title =
-                        buildAnnotatedString {
-                            when (row) {
-                                is TunnelListRow.GroupHeader -> {
-                                    // Not pinged as a unit, so there's no latency for a header
-                                    append(
-                                        if (row.childCount == 0) row.group.name
-                                        else
-                                            stringResource(
-                                                R.string.group_with_count,
-                                                row.group.name,
-                                                row.childCount,
-                                            )
-                                    )
-                                }
-                                is TunnelListRow.TunnelRow -> {
-                                    append(row.tunnel.name)
-                                    val latency = uiState.reorderLatencies[row.tunnel.id]
-                                    if (latency != null) {
-                                        append(" - ")
-                                        if (latency == Double.MAX_VALUE) {
-                                            withStyle(SpanStyle(color = AlertRed)) {
-                                                append(stringResource(R.string.ping_unreachable))
+                    val title = buildAnnotatedString {
+                        when (row) {
+                            is TunnelListRow.GroupHeader -> {
+                                // Not pinged as a unit, so there's no latency for a header
+                                append(
+                                    if (row.childCount == 0) row.group.name
+                                    else
+                                        stringResource(
+                                            R.string.group_with_count,
+                                            row.group.name,
+                                            row.childCount,
+                                        )
+                                )
+                            }
+                            is TunnelListRow.TunnelRow -> {
+                                append(row.tunnel.name)
+                                val latency = uiState.reorderLatencies[row.tunnel.id]
+                                if (latency != null) {
+                                    append(" - ")
+                                    if (latency == Double.MAX_VALUE) {
+                                        withStyle(SpanStyle(color = AlertRed)) {
+                                            append(stringResource(R.string.ping_unreachable))
+                                        }
+                                    } else {
+                                        val color =
+                                            when (latency) {
+                                                in 0.0..50.0 -> SilverTree
+                                                in 50.0..150.0 -> Straw
+                                                else -> AlertRed
                                             }
-                                        } else {
-                                            val color =
-                                                when (latency) {
-                                                    in 0.0..50.0 -> SilverTree
-                                                    in 50.0..150.0 -> Straw
-                                                    else -> AlertRed
-                                                }
-                                            withStyle(SpanStyle(color = color)) {
-                                                append("${latency.toInt()}ms")
-                                            }
+                                        withStyle(SpanStyle(color = color)) {
+                                            append("${latency.toInt()}ms")
                                         }
                                     }
                                 }
                             }
                         }
+                    }
                     ExpandingRowListItem(
                         leading = {
                             if (row is TunnelListRow.GroupHeader) {

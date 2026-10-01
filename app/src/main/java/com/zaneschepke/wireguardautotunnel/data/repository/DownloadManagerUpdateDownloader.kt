@@ -1,10 +1,10 @@
 package com.zaneschepke.wireguardautotunnel.data.repository
 
-import android.annotation.SuppressLint
 import android.app.DownloadManager
 import android.content.Context
-import android.net.Uri
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import com.zaneschepke.wireguardautotunnel.BuildConfig
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.data.network.StreamingFileDownloader
@@ -19,6 +19,7 @@ import com.zaneschepke.wireguardautotunnel.notification.NotificationService
 import java.io.File
 import java.io.IOException
 import kotlin.coroutines.coroutineContext
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -34,9 +35,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import androidx.core.content.edit
-import kotlin.time.Duration.Companion.milliseconds
-import androidx.core.net.toUri
 
 /**
  * The system DownloadManager owns the transfer, so it survives the UI and the process. The active
@@ -102,15 +100,14 @@ class DownloadManagerUpdateDownloader(
     private fun enqueueWithManager(update: AppUpdate, url: String, fileName: String) {
         val manager = downloadManager ?: throw IOException("DownloadManager is not available")
         val id = manager.enqueue(buildRequest(url, fileName, update.version))
-        prefs
-            .edit {
-                putLong(KEY_ID, id)
-                    .putLong(KEY_SIZE, update.apkSize ?: NONE)
-                    .putString(KEY_FILE, fileName)
-                    .putString(KEY_VERSION, update.version)
-                    .putString(KEY_RELEASE_URL, update.releaseUrl)
-                    .putString(KEY_URL, url)
-            }
+        prefs.edit {
+            putLong(KEY_ID, id)
+                .putLong(KEY_SIZE, update.apkSize ?: NONE)
+                .putString(KEY_FILE, fileName)
+                .putString(KEY_VERSION, update.version)
+                .putString(KEY_RELEASE_URL, update.releaseUrl)
+                .putString(KEY_URL, url)
+        }
         _state.value = UpdateDownloadState.Downloading(0L, update.apkSize ?: NONE)
         startPolling(id)
     }
@@ -287,7 +284,10 @@ class DownloadManagerUpdateDownloader(
                         }
                     }
                     if (!keepPolling) return@launch
-                    delay((if (_state.subscriptionCount.value > 0) FAST_POLL_MS else SLOW_POLL_MS).milliseconds)
+                    delay(
+                        (if (_state.subscriptionCount.value > 0) FAST_POLL_MS else SLOW_POLL_MS)
+                            .milliseconds
+                    )
                 }
             }
     }
