@@ -2,6 +2,8 @@ package com.zaneschepke.wireguardautotunnel.viewmodel
 
 import androidx.lifecycle.ViewModel
 import com.dokar.sonner.ToastType
+import com.wgtunnel.backend.model.isValidProxyBindAddress
+import com.wgtunnel.backend.model.parseProxyBindAddress
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.core.orchestration.TunnelCoordinator
 import com.zaneschepke.wireguardautotunnel.domain.repository.GlobalEffectRepository
@@ -9,7 +11,6 @@ import com.zaneschepke.wireguardautotunnel.domain.repository.ProxySettingsReposi
 import com.zaneschepke.wireguardautotunnel.domain.sideeffect.GlobalSideEffect
 import com.zaneschepke.wireguardautotunnel.ui.state.ProxySettingsUiState
 import com.zaneschepke.wireguardautotunnel.util.StringValue
-import com.zaneschepke.wireguardautotunnel.util.extensions.isValidAndroidProxyBindAddress
 import kotlinx.coroutines.flow.combine
 import org.orbitmvi.orbit.OrbitContainerHost
 import org.orbitmvi.orbit.viewmodel.orbitContainer
@@ -64,16 +65,16 @@ class ProxySettingsViewModel(
         val isSocks5Default = updated.socks5ProxyBindAddress == null
 
         // Validate bind addresses
-        if (!isSocks5Default && !updated.socks5ProxyBindAddress.isValidAndroidProxyBindAddress()) {
+        if (!isSocks5Default && !updated.socks5ProxyBindAddress.isValidProxyBindAddress()) {
             return@intent reduce { state.copy(isSocks5BindAddressError = true) }
         }
-        if (!isHttpDefault && !updated.httpProxyBindAddress.isValidAndroidProxyBindAddress()) {
+        if (!isHttpDefault && !updated.httpProxyBindAddress.isValidProxyBindAddress()) {
             return@intent reduce { state.copy(isHttpBindAddressError = true) }
         }
         // Validate different ports
         if (!isHttpDefault && !isSocks5Default) {
-            val socksPort = updated.socks5ProxyBindAddress.split(":").last().toIntOrNull()
-            val httpPort = updated.httpProxyBindAddress.split(":").last().toIntOrNull()
+            val socksPort = updated.socks5ProxyBindAddress.parseProxyBindAddress()?.second
+            val httpPort = updated.httpProxyBindAddress.parseProxyBindAddress()?.second
             if (socksPort == null || httpPort == null || socksPort == httpPort) {
                 return@intent postSideEffect(
                     GlobalSideEffect.Snackbar(

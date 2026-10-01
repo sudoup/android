@@ -8,7 +8,10 @@ interface UpdateDownloader {
     val state: StateFlow<UpdateDownloadState>
 
     fun activeUpdate(): AppUpdate?
+
     suspend fun start(update: AppUpdate): Result<Unit>
+
     suspend fun cancel()
+
     suspend fun onDownloadComplete(downloadId: Long)
 }
