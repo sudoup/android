@@ -23,6 +23,10 @@ internal fun interfaceNameLooksLikeSoftApOrP2p(name: String?): Boolean {
         n == "ap0"
 }
 
+/**
+ * Wireless Android Auto is often a real associated STA (wlan0, real networkId/SSID) with no
+ * INTERNET capability and no HEAD_UNIT/P2P flag. Those networks must still be ignored.
+ */
 internal fun looksLikeServedOrLocalWifi(
     interfaceName: String?,
     hasLocalNetwork: Boolean,
@@ -30,12 +34,11 @@ internal fun looksLikeServedOrLocalWifi(
     hasWifiP2p: Boolean,
     hasInternet: Boolean,
     tetheredIfaces: Set<String>,
-    wifiClientAssociated: Boolean,
 ): Boolean {
     if (hasLocalNetwork || hasHeadUnit || hasWifiP2p) return true
     if (interfaceNameLooksLikeSoftApOrP2p(interfaceName)) return true
     if (!interfaceName.isNullOrEmpty() && interfaceName in tetheredIfaces) return true
-    // Hotspot-only / local-only (no STA). Captive STA still counts as associated.
-    if (!wifiClientAssociated && !hasInternet) return true
+    // Local-only STA (Wireless Android Auto, SoftAP named wlan0/wlan1, etc.)
+    if (!hasInternet) return true
     return false
 }

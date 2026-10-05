@@ -443,7 +443,13 @@ class AndroidNetworkMonitor(
                 if (isServedOrLocalWifi(network, caps)) {
                     val wasClient =
                         synchronized(reportedClientWifi) { reportedClientWifi.remove(network) }
-                    Timber.d("Ignoring served/local Wi-Fi %s caps=%s", network, caps)
+                    Timber.i(
+                        "Ignoring served/local Wi-Fi %s internet=%s wasClient=%s caps=%s",
+                        network,
+                        caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET),
+                        wasClient,
+                        caps,
+                    )
                     if (wasClient) trySend(TransportEvent.Lost(network))
                 } else {
                     synchronized(reportedClientWifi) { reportedClientWifi.add(network) }
@@ -709,7 +715,6 @@ class AndroidNetworkMonitor(
             hasWifiP2p = hasWifiP2p,
             hasInternet = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET),
             tetheredIfaces = tetheredInterfaceNames(),
-            wifiClientAssociated = isWifiClientAssociated(),
         )
     }
 
