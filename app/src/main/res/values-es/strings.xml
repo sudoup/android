@@ -486,13 +486,7 @@
     <string name="split_suffix_target">Ruta de sufijos</string>
     <string name="split_suffix_target_system">DNS del sistema</string>
     <string name="split_suffix_target_tunnel">DNS de túnel</string>
-    <string name="split_suffix_target_desc">Donde los sufijos deben ser enrutados. Todo lo demás se enruta a través del DNS del túnel.</string>
     <string name="private_dns_enabled_warning">El DNS privado está habilitado. Deshabilitarlo para que el DNS del túnel funcione correctamente</string>
-    <string name="foreign_dns_policy">Política de DNS externo</string>
-    <string name="foreign_dns_policy_desc">Cómo manejar una solicitud DNS simple enviada a un servidor diferente de los servidores DNS del túnel</string>
-    <string name="foreign_dns_redirect">Redirigir</string>
-    <string name="foreign_dns_block">Bloquear</string>
-    <string name="foreign_dns_allow">Permitir</string>
     <string name="error_config_missing_dns">Al túnel %1$s le faltan los servidores DNS necesarios para la configuración actual de la aplicación</string>
     <string name="live_updates">Actualizaciones en directo</string>
     <string name="live_updates_desc">Muestra el progreso y el estado de la conexión del túnel activo en la barra de estado y en la pantalla de bloqueo. Se aplica cuando hay un solo túnel en ejecución</string>
