@@ -10,7 +10,6 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.scrollbar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -32,6 +31,7 @@ import com.dokar.sonner.ToastType
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.domain.sideeffect.GlobalSideEffect
 import com.zaneschepke.wireguardautotunnel.ui.common.functions.rememberClipboardHelper
+import com.zaneschepke.wireguardautotunnel.ui.common.scroll.appScrollbar
 import com.zaneschepke.wireguardautotunnel.ui.screens.tunnels.settings.config.components.QrCodeDialog
 import com.zaneschepke.wireguardautotunnel.ui.sideeffect.LocalSideEffect
 import com.zaneschepke.wireguardautotunnel.ui.theme.ConfigHeaderColor
@@ -120,7 +120,7 @@ fun ConfigScreen(
         modifier =
             Modifier.fillMaxSize()
                 .verticalScroll(scrollState)
-                .scrollbar(
+                .appScrollbar(
                     state = scrollState.scrollIndicatorState,
                     orientation = Orientation.Vertical,
                 ),

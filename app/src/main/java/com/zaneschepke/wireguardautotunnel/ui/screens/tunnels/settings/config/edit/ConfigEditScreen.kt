@@ -12,7 +12,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.HdrAuto
 import androidx.compose.material3.Icon
-import androidx.compose.material3.scrollbar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +28,7 @@ import com.zaneschepke.wireguardautotunnel.ui.LocalIsAndroidTV
 import com.zaneschepke.wireguardautotunnel.ui.common.button.SurfaceRow
 import com.zaneschepke.wireguardautotunnel.ui.common.button.ThemedSwitch
 import com.zaneschepke.wireguardautotunnel.ui.common.dialog.rememberRestartToApplyChanges
+import com.zaneschepke.wireguardautotunnel.ui.common.scroll.appScrollbar
 import com.zaneschepke.wireguardautotunnel.ui.screens.tunnels.settings.config.edit.components.AddPeerButton
 import com.zaneschepke.wireguardautotunnel.ui.screens.tunnels.settings.config.edit.components.InterfaceSection
 import com.zaneschepke.wireguardautotunnel.ui.screens.tunnels.settings.config.edit.components.PeersSection
@@ -94,7 +94,7 @@ fun ConfigEditScreen(
             Modifier.fillMaxSize()
                 .imePadding()
                 .verticalScroll(scrollState)
-                .scrollbar(
+                .appScrollbar(
                     state = scrollState.scrollIndicatorState,
                     orientation = Orientation.Vertical,
                 ),

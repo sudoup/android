@@ -17,7 +17,6 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.scrollbar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.domain.model.TunnelConfig
 import com.zaneschepke.wireguardautotunnel.ui.common.button.SurfaceRow
+import com.zaneschepke.wireguardautotunnel.ui.common.scroll.appScrollbar
 import com.zaneschepke.wireguardautotunnel.ui.common.textbox.ConfigurationTextBox
 
 @Composable
@@ -61,7 +61,7 @@ fun TunnelPickerList(
             modifier =
                 Modifier.fillMaxSize()
                     .overscroll(rememberOverscrollEffect())
-                    .scrollbar(lazyListState.scrollIndicatorState, Orientation.Vertical),
+                    .appScrollbar(lazyListState.scrollIndicatorState, Orientation.Vertical),
             verticalArrangement = Arrangement.spacedBy(4.dp),
             flingBehavior = ScrollableDefaults.flingBehavior(),
         ) {
