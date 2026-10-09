@@ -351,7 +351,8 @@ class AndroidNetworkMonitor(
                     val defaultNetworkCallback =
                         if (
                             Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                                detectionMethod == DEFAULT
+                                detectionMethod == DEFAULT &&
+                                appContext.hasRequiredLocationPermissions()
                         ) {
                             object :
                                 ConnectivityManager.NetworkCallback(FLAG_INCLUDE_LOCATION_INFO) {
@@ -466,7 +467,11 @@ class AndroidNetworkMonitor(
         }
 
         val wifiCallback =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && detectionMethod == DEFAULT) {
+            if (
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                    detectionMethod == DEFAULT &&
+                    appContext.hasRequiredLocationPermissions()
+            ) {
                 object : ConnectivityManager.NetworkCallback(FLAG_INCLUDE_LOCATION_INFO) {
                     override fun onAvailable(network: Network) = onAvailable(network)
 
