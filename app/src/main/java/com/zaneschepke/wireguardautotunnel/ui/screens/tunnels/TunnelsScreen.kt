@@ -212,9 +212,7 @@ fun TunnelsScreen(sharedViewModel: SharedAppViewModel = koinActivityViewModel())
     if (showImportSheet) {
         TunnelImportSheet(
             onDismiss = { showImportSheet = false },
-            onFileClick = {
-                tunnelFileImportResultLauncher.launch(FileUtils.ALLOWED_TV_FILE_TYPES)
-            },
+            onFileClick = { tunnelFileImportResultLauncher.launch(FileUtils.ALL_FILE_TYPES) },
             onQrClick = { requestPermissionLauncher.launch(android.Manifest.permission.CAMERA) },
             onClipboardClick = {
                 clipboard.paste { result ->

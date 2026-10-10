@@ -74,8 +74,6 @@ fun rememberFileExportLauncherForResult(
     onCanceled: () -> Unit,
     onUnsupported: () -> Unit,
 ): ManagedActivityResultLauncher<String, Uri?> {
-    val isTv = LocalIsAndroidTV.current
-
     return rememberLauncherForActivityResult(
         contract =
             object : ActivityResultContracts.CreateDocument(mimeType) {
@@ -84,7 +82,7 @@ fun rememberFileExportLauncherForResult(
                         super.createIntent(context, input).apply {
                             addCategory(Intent.CATEGORY_OPENABLE)
                             putExtra(Intent.EXTRA_TITLE, input)
-                            type = if (isTv) FileUtils.ALLOWED_TV_FILE_TYPES else mimeType
+                            type = mimeType
                         }
 
                     // Detect Android TV stub pickers that do nothing
