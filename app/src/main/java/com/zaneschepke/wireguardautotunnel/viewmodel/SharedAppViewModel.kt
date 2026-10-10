@@ -32,6 +32,8 @@ import com.zaneschepke.wireguardautotunnel.ui.state.TunnelsUiState
 import com.zaneschepke.wireguardautotunnel.ui.state.moveDisplayedRows
 import com.zaneschepke.wireguardautotunnel.ui.state.nextChildPosition
 import com.zaneschepke.wireguardautotunnel.ui.state.nextRootPosition
+import com.zaneschepke.wireguardautotunnel.ui.state.shiftForInsertAfter
+import com.zaneschepke.wireguardautotunnel.ui.state.shiftRootPositionsBy
 import com.zaneschepke.wireguardautotunnel.ui.state.sortGroupChildrenByName
 import com.zaneschepke.wireguardautotunnel.ui.state.sortRootByName
 import com.zaneschepke.wireguardautotunnel.ui.state.ungroupKeepingOrder
@@ -588,13 +590,18 @@ class SharedAppViewModel(
     fun importTunnelConfigs(configs: Map<QuickConfig, TunnelName>) = intent {
         try {
             val ui = tunnelsUiState.value
-            val next = nextRootPosition(ui.groups, ui.tunnels)
             val tunnelConfigs =
                 configs.entries.mapIndexed { index, (quick, name) ->
                     val config = Config.parseQuickString(quick)
                     config.validate()
-                    TunnelConfig.fromConfig(config, name).copy(position = next + index)
+                    // Final positions assigned after validation below, placed at the top.
+                    TunnelConfig.fromConfig(config, name).copy(position = index)
                 }
+            // New tunnels land at the top
+            val (shiftedGroups, shiftedTunnels) =
+                shiftRootPositionsBy(ui.groups, ui.tunnels, tunnelConfigs.size)
+            tunnelGroupRepository.saveAll(shiftedGroups)
+            tunnelRepository.saveAll(shiftedTunnels)
             tunnelRepository.saveTunnelsUniquely(tunnelConfigs, state.tunnelNames.map { it.value })
         } catch (e: Exception) {
             if (e is ConfigParseException) {
@@ -751,14 +758,15 @@ class SharedAppViewModel(
         val selected = tunnelsUiState.value.selectedTunnels.firstOrNull() ?: return@intent
         val config = selected.getConfig()
         val ui = tunnelsUiState.value
+        // Placed right after the original, not appended to the end - shift everything after it
+        // in the same scope (its group, or root) forward by one to open that slot.
+        val (shiftedGroups, shiftedTunnels) =
+            shiftForInsertAfter(ui.groups, ui.tunnels, selected.groupId, selected.position)
         val copy =
             TunnelConfig.fromConfig(config, selected.name)
-                .copy(
-                    groupId = selected.groupId,
-                    position =
-                        selected.groupId?.let { nextChildPosition(ui.tunnels, it) }
-                            ?: nextRootPosition(ui.groups, ui.tunnels),
-                )
+                .copy(groupId = selected.groupId, position = selected.position + 1)
+        tunnelGroupRepository.saveAll(shiftedGroups)
+        tunnelRepository.saveAll(shiftedTunnels)
         tunnelRepository.saveTunnelsUniquely(listOf(copy), state.tunnelNames.map { it.value })
         clearSelectedTunnels()
     }
