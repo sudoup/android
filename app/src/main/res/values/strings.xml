@@ -696,12 +696,26 @@
     <string name="collapse_group">Collapse group</string>
     <string name="group_with_count">%1$s (%2$d)</string>
     <string name="group_active_count">%1$d active</string>
-    <string name="add_group_ellipsis">Add group…</string>
     <string name="no_tunnels_in_group">This group has no tunnels to export</string>
     <string name="n_selected">%d selected</string>
     <plurals name="group_tunnel_count">
         <item quantity="one">%d tunnel</item>
         <item quantity="other">%d tunnels</item>
+    </plurals>
+    <string name="create">Create</string>
+    <string name="move">Move</string>
+    <string name="create_group">Create group</string>
+    <plurals name="tunnels_will_move_to_group">
+        <item quantity="one">%d tunnel will be moved to this group</item>
+        <item quantity="other">%d tunnels will be moved to this group</item>
+    </plurals>
+    <plurals name="move_n_tunnels_to">
+        <item quantity="one">Move %d tunnel to</item>
+        <item quantity="other">Move %d tunnels to</item>
+    </plurals>
+    <plurals name="move_n_tunnels">
+        <item quantity="one">Move %d tunnel</item>
+        <item quantity="other">Move %d tunnels</item>
     </plurals>
     <string name="socks5" translatable="false">SOCKS5</string>
     <string name="http" translatable="false">HTTP</string>

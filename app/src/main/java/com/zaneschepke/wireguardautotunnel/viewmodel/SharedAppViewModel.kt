@@ -29,7 +29,6 @@ import com.zaneschepke.wireguardautotunnel.ui.sideeffect.LocalSideEffect
 import com.zaneschepke.wireguardautotunnel.ui.state.DisplayTunnelState
 import com.zaneschepke.wireguardautotunnel.ui.state.GlobalAppUiState
 import com.zaneschepke.wireguardautotunnel.ui.state.TunnelsUiState
-import com.zaneschepke.wireguardautotunnel.ui.state.moveDisplayedRows
 import com.zaneschepke.wireguardautotunnel.ui.state.nextChildPosition
 import com.zaneschepke.wireguardautotunnel.ui.state.nextRootPosition
 import com.zaneschepke.wireguardautotunnel.ui.state.shiftForInsertAfter
@@ -162,6 +161,7 @@ class SharedAppViewModel(
                                 TunnelsChrome(
                                     loading = it.isLoading,
                                     selectedTunCount = it.selectedCount,
+                                    canMoveToGroup = it.canMoveToGroup,
                                     isReorderMode = it.isReorderMode,
                                     reorderScopeTitle = it.reorderScopeGroup?.name,
                                     hasGroups = it.groups.isNotEmpty(),
@@ -181,6 +181,7 @@ class SharedAppViewModel(
                             isBatteryOptimizationShown = appState.isBatteryOptimizationDisableShown,
                             shouldShowDonationSnackbar = appState.shouldShowDonationSnackbar,
                             selectedTunnelCount = chrome.selectedTunCount,
+                            canMoveToGroup = chrome.canMoveToGroup,
                             isReorderMode = chrome.isReorderMode,
                             reorderScopeTitle = chrome.reorderScopeTitle,
                             hasGroups = chrome.hasGroups,
@@ -316,19 +317,6 @@ class SharedAppViewModel(
         reorderDraft.update { draft -> draft?.copy(groups = groups, tunnels = tunnels) }
     }
 
-    fun moveReorder(fromIndex: Int, toIndex: Int) {
-        val draft = reorderDraft.value ?: return
-        val (groups, tunnels) =
-            moveDisplayedRows(
-                draft.groups,
-                draft.tunnels,
-                fromIndex,
-                toIndex,
-                draft.scopeGroupId,
-            )
-        applyReorderDraft(groups, tunnels)
-    }
-
     fun saveReorder() = intent {
         val draft = reorderDraft.value ?: return@intent
         tunnelGroupRepository.saveAll(draft.groups)
@@ -406,32 +394,18 @@ class SharedAppViewModel(
             draft.copy(tunnels = tunnels, sortAscending = null, latencies = latencies)
     }
 
-    fun createGroup(name: String) = intent {
-        val ui = tunnelsUiState.value
-        val unique = uniqueDisplayName(name, ui.groups.map { it.name }, "Group")
-        tunnelGroupRepository.save(
-            TunnelGroup(
-                name = unique,
-                position = nextRootPosition(ui.groups, ui.tunnels),
-                expanded = true,
-            )
-        )
-    }
-
     fun createGroupAndMoveSelected(name: String) = intent {
         val ui = tunnelsUiState.value
         val selected = ui.selectedTunnels
         if (selected.isEmpty()) return@intent
         val unique = uniqueDisplayName(name, ui.groups.map { it.name }, "Group")
+        // New groups land at the top
+        val (shiftedGroups, shiftedTunnels) = shiftRootPositionsBy(ui.groups, ui.tunnels, 1)
+        tunnelGroupRepository.saveAll(shiftedGroups)
+        tunnelRepository.saveAll(shiftedTunnels)
         val groupId =
-            tunnelGroupRepository.save(
-                TunnelGroup(
-                    name = unique,
-                    position = nextRootPosition(ui.groups, ui.tunnels),
-                    expanded = true,
-                )
-            )
-        moveToGroup(groupId, selected, ui.tunnels)
+            tunnelGroupRepository.save(TunnelGroup(name = unique, position = 0, expanded = true))
+        moveToGroup(groupId, selected, shiftedTunnels)
     }
 
     fun renameGroup(group: TunnelGroup, name: String) = intent {
@@ -494,30 +468,17 @@ class SharedAppViewModel(
         clearSelectedTunnels()
     }
 
+    // Releases only the selected tunnels from their groups
     fun ungroupSelected() = intent {
         val ui = tunnelsUiState.value
         if (!ui.canUngroup) return@intent
-        var groups = ui.groups
-        var tunnels = ui.tunnels
-        ui.selectedGroups.forEach { group ->
-            val result = ungroupKeepingOrder(groups, tunnels, group.id)
-            groups = result.first
-            tunnels = result.second
-            tunnelGroupRepository.delete(group)
-        }
-        val stillGrouped =
-            ui.selectedTunnels.mapNotNull { selected ->
-                tunnels.firstOrNull { it.id == selected.id && it.groupId != null }
-            }
-        if (stillGrouped.isNotEmpty()) {
-            var next = nextRootPosition(groups, tunnels)
-            val ids = stillGrouped.map { it.id }.toSet()
-            tunnels = tunnels.map { tunnel ->
+        var next = nextRootPosition(ui.groups, ui.tunnels)
+        val ids = ui.selectedTunnels.map { it.id }.toSet()
+        val tunnels =
+            ui.tunnels.map { tunnel ->
                 if (tunnel.id in ids) tunnel.copy(groupId = null, position = next++) else tunnel
             }
-        }
         tunnelRepository.saveAll(tunnels)
-        tunnelGroupRepository.saveAll(groups)
         clearSelectedTunnels()
     }
 
@@ -833,6 +794,7 @@ private data class ReorderDraft(
 private data class TunnelsChrome(
     val loading: Boolean,
     val selectedTunCount: Int,
+    val canMoveToGroup: Boolean,
     val isReorderMode: Boolean,
     val reorderScopeTitle: String?,
     val hasGroups: Boolean,

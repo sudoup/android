@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.ContentPasteGo
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.RemoveRedEye
@@ -384,6 +385,20 @@ fun currentRouteAsNavbarState(
                                     }
                                 selecting ->
                                     Row {
+                                        if (globalState.canMoveToGroup) {
+                                            IconButton(
+                                                onClick = {
+                                                    sharedViewModel.postSideEffect(
+                                                        LocalSideEffect.Sheet.MoveToGroup
+                                                    )
+                                                }
+                                            ) {
+                                                Icon(
+                                                    Icons.Outlined.Folder,
+                                                    stringResource(R.string.move_to_group),
+                                                )
+                                            }
+                                        }
                                         IconButton(
                                             onClick = {
                                                 sharedViewModel.postSideEffect(
@@ -402,7 +417,7 @@ fun currentRouteAsNavbarState(
                                         IconButton(
                                             onClick = {
                                                 sharedViewModel.postSideEffect(
-                                                    LocalSideEffect.Sheet.AddMenu
+                                                    LocalSideEffect.Sheet.ImportTunnels
                                                 )
                                             }
                                         ) {

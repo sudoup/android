@@ -23,14 +23,10 @@ data class TunnelsUiState(
         get() = selectedTunnels.size + selectedGroups.size
 
     val canUngroup: Boolean
-        get() {
-            if (selectedTunnels.isEmpty() && selectedGroups.isEmpty()) return false
-            if (selectedTunnels.any { it.groupId == null }) return false
-            return selectedTunnels.isNotEmpty() || selectedGroups.isNotEmpty()
-        }
+        get() = selectedTunnels.isNotEmpty() && selectedTunnels.none { it.groupId == null }
 
     val canMoveToGroup: Boolean
-        get() = selectedTunnels.isNotEmpty()
+        get() = selectedTunnels.isNotEmpty() && selectedGroups.isEmpty()
 
     val canCopy: Boolean
         get() = selectedTunnels.size == 1 && selectedGroups.isEmpty()

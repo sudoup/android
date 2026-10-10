@@ -148,24 +148,6 @@ fun buildTunnelListRows(
     }
 }
 
-fun moveDisplayedRows(
-    groups: List<TunnelGroup>,
-    tunnels: List<TunnelConfig>,
-    fromIndex: Int,
-    toIndex: Int,
-    scopeGroupId: Int?,
-): Pair<List<TunnelGroup>, List<TunnelConfig>> {
-    if (fromIndex == toIndex) return groups to tunnels
-    if (scopeGroupId != null) {
-        return groups to moveGroupChildren(tunnels, scopeGroupId, fromIndex, toIndex)
-    }
-    val root = rootItems(groups, tunnels).toMutableList()
-    if (fromIndex !in root.indices || toIndex !in root.indices) return groups to tunnels
-    val moved = root.removeAt(fromIndex)
-    root.add(toIndex, moved)
-    return reindexRoot(root, tunnels)
-}
-
 fun sortRootByName(
     groups: List<TunnelGroup>,
     tunnels: List<TunnelConfig>,
@@ -212,20 +194,6 @@ private fun rootItems(groups: List<TunnelGroup>, tunnels: List<TunnelConfig>): L
     return (groups.map { RootItem.Group(it) } + ungrouped.map { RootItem.Tunnel(it) }).sortedWith(
         compareBy({ it.position }, { it.name.lowercase() })
     )
-}
-
-private fun moveGroupChildren(
-    tunnels: List<TunnelConfig>,
-    groupId: Int,
-    fromIndex: Int,
-    toIndex: Int,
-): List<TunnelConfig> {
-    val children = tunnels.filter { it.groupId == groupId }.sortedBy { it.position }.toMutableList()
-    val others = tunnels.filter { it.groupId != groupId }
-    if (fromIndex !in children.indices || toIndex !in children.indices) return tunnels
-    val moved = children.removeAt(fromIndex)
-    children.add(toIndex, moved)
-    return others + children.mapIndexed { index, tunnel -> tunnel.copy(position = index) }
 }
 
 private fun reindexRoot(

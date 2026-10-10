@@ -1,6 +1,4 @@
-plugins {
-    alias(libs.plugins.androidLibrary)
-}
+plugins { alias(libs.plugins.androidLibrary) }
 
 android {
     namespace = "com.zaneschepke.logcatter"

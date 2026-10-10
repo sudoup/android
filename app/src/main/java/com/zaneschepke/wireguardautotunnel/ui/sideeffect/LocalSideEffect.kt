@@ -9,8 +9,6 @@ sealed class LocalSideEffect {
 
     sealed class Sheet : LocalSideEffect() {
 
-        data object AddMenu : Sheet()
-
         data object ImportTunnels : Sheet()
 
         data object MoveToGroup : Sheet()
