@@ -150,7 +150,6 @@
     <string name="camera_permission_required">Permiso de cámara requerido</string>
     <string name="export_failed">Exportación fallida</string>
     <string name="version_template">Versión: %1$s</string>
-    <string name="current_template">Actual: %1$s</string>
     <string name="flavor_template">Variante: %1$s</string>
     <string name="root_required_template">%1$s (se necesita root)</string>
     <string name="recommended_template">%1$s (recomendado)</string>

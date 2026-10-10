@@ -142,7 +142,6 @@
     <string name="camera_permission_required">Permessi telecamera richiesti</string>
     <string name="export_failed">Esportazione fallita</string>
     <string name="version_template">Versione: %1$s</string>
-    <string name="current_template">Corrente: %1$s</string>
     <string name="flavor_template">Caratteristica: %1$s</string>
     <string name="root_required_template">%1$s (root richiesto)</string>
     <string name="recommended_template">%1$s (raccomandato)</string>

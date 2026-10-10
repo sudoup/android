@@ -144,7 +144,6 @@
     <string name="camera_permission_required">Izin kamera diperlukan</string>
     <string name="export_failed">Ekspor gagal</string>
     <string name="version_template">Versi: %1$s</string>
-    <string name="current_template">Saat ini: %1$s</string>
     <string name="flavor_template">Varian: %1$s</string>
     <string name="root_required_template">%1$s (memerlukan root)</string>
     <string name="recommended_template">%1$s (direkomendasikan)</string>

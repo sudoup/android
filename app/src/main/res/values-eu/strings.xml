@@ -150,7 +150,6 @@
     <string name="camera_permission_required">Kamera-baimena beharrezkoa</string>
     <string name="export_failed">Esportazioak huts egin du</string>
     <string name="version_template">Bertsioa: %1$s</string>
-    <string name="current_template">Unekoa: %1$s</string>
     <string name="flavor_template">Aldaera: %1$s</string>
     <string name="root_required_template">%1$s (root beharrezkoa)</string>
     <string name="recommended_template">%1$s  (gomendatua)</string>

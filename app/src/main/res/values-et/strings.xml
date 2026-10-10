@@ -149,7 +149,6 @@
     <string name="camera_permission_required">Vajalik on õigus kasutada kaamerat</string>
     <string name="export_failed">Eksportimine ei õnnestunud</string>
     <string name="version_template">Versioon: %1$s</string>
-    <string name="current_template">Praegune: %1$s</string>
     <string name="flavor_template">Levitusviis: %1$s</string>
     <string name="root_required_template">%1$s (vajalikud on juurkasutaja õigused)</string>
     <string name="recommended_template">%1$s (soovitatav)</string>

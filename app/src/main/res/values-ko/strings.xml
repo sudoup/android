@@ -150,7 +150,6 @@
     <string name="camera_permission_required">카메라 권한 필요</string>
     <string name="export_failed">내보내기 실패</string>
     <string name="version_template">버전: %1$s</string>
-    <string name="current_template">현재: %1$s</string>
     <string name="flavor_template">배포 채널: %1$s</string>
     <string name="root_required_template">%1$s (루트 권한 필요)</string>
     <string name="recommended_template">%1$s (권장)</string>

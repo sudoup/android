@@ -150,7 +150,6 @@
     <string name="camera_permission_required">Vyžadováno oprávnění k použití fotoaparátu</string>
     <string name="export_failed">Export se nezdařil</string>
     <string name="version_template">Verze: %1$s</string>
-    <string name="current_template">Aktuální: %1$s</string>
     <string name="flavor_template">Varianta: %1$s</string>
     <string name="root_required_template">%1$s (vyžaduje root)</string>
     <string name="recommended_template">%1$s (doporučeno)</string>

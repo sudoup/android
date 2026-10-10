@@ -150,7 +150,6 @@
     <string name="camera_permission_required">Потрібен доступ до камери</string>
     <string name="export_failed">Експорт не вдався</string>
     <string name="version_template">Версія: %1$s</string>
-    <string name="current_template">Поточний: %1$s</string>
     <string name="flavor_template">Джерело: %1$s</string>
     <string name="root_required_template">%1$s (потрібен рут)</string>
     <string name="recommended_template">%1$s (рекомендовано)</string>

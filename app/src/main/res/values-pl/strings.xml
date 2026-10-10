@@ -156,7 +156,6 @@
     <string name="camera_permission_required">Wymagane zezwolenie na dostęp do aparatu</string>
     <string name="export_failed">Eksport nie powiódł się</string>
     <string name="version_template">Wersja: %1$s</string>
-    <string name="current_template">Bieżące: %1$s</string>
     <string name="flavor_template">Wariant: %1$s</string>
     <string name="root_required_template">%1$s (wymagany root)</string>
     <string name="recommended_template">%1$s (zalecane)</string>
@@ -554,7 +553,6 @@
     <string name="collapse_group">Zwiń grupę</string>
     <string name="group_with_count">%1$s (%2$d)</string>
     <string name="group_active_count">Aktywne: %1$d</string>
-    <string name="add_group_ellipsis">Dodaj grupę…</string>
     <string name="no_tunnels_in_group">Ta grupa nie ma tuneli do eksportu</string>
     <string name="n_selected">Wybrano: %d</string>
     <plurals name="group_tunnel_count">

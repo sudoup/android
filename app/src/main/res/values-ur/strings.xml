@@ -149,7 +149,6 @@
     <string name="camera_permission_required">کیمرے کی اجازت درکار ہے</string>
     <string name="export_failed">برآمد ناکام</string>
     <string name="version_template">ورژن: %1$s</string>
-    <string name="current_template">موجودہ: %1$s</string>
     <string name="flavor_template">ذائقہ: %1$s</string>
     <string name="root_required_template">%1$s (روٹ کی ضرورت ہے)</string>
     <string name="recommended_template">%1$s (تجویز کردہ)</string>
