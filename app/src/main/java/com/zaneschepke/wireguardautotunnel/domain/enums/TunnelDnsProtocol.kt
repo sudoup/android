@@ -17,6 +17,14 @@ enum class TunnelDnsProtocol(val value: Int) {
         }
     }
 
+    fun asDescription(context: Context): String {
+        return when (this) {
+            Doh -> context.getString(R.string.doh_desc)
+            Dot -> context.getString(R.string.dot_desc)
+            Plain -> context.getString(R.string.plain_dns_desc)
+        }
+    }
+
     fun toCore(): DnsEndpointProtocol =
         when (this) {
             Doh -> DnsEndpointProtocol.DOH

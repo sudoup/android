@@ -1,5 +1,8 @@
 package com.zaneschepke.wireguardautotunnel.ui.common.sheet
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -7,10 +10,13 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.ui.LocalIsAndroidTV
 import com.zaneschepke.wireguardautotunnel.ui.common.button.SurfaceRow
@@ -18,7 +24,12 @@ import com.zaneschepke.wireguardautotunnel.ui.common.text.DescriptionText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CustomBottomSheet(options: List<SheetOption>, onDismiss: () -> Unit) {
+fun CustomBottomSheet(
+    options: List<SheetOption>,
+    title: String? = null,
+    description: String? = null,
+    onDismiss: () -> Unit,
+) {
     val isTv = LocalIsAndroidTV.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = isTv)
     ModalBottomSheet(
@@ -26,6 +37,16 @@ fun CustomBottomSheet(options: List<SheetOption>, onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         sheetState = sheetState,
     ) {
+        if (title != null || description != null) {
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                title?.let { Text(it, style = MaterialTheme.typography.titleMedium) }
+                description?.let { DescriptionText(it) }
+            }
+            HorizontalDivider()
+        }
         options.forEachIndexed { index, option ->
             SurfaceRow(
                 title = option.label,

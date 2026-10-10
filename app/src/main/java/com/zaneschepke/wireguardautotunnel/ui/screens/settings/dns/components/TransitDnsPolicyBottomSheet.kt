@@ -4,36 +4,35 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.zaneschepke.wireguardautotunnel.R
-import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelDnsMode
+import com.zaneschepke.wireguardautotunnel.domain.enums.ForeignDnsPolicy
 import com.zaneschepke.wireguardautotunnel.ui.common.sheet.CustomBottomSheet
 import com.zaneschepke.wireguardautotunnel.ui.common.sheet.SheetOption
 import com.zaneschepke.wireguardautotunnel.util.extensions.asIcon
 import kotlin.enums.enumEntries
 
 @Composable
-fun TunnelDnsModeBottomSheet(
-    onTunnelDnsModeChange: (TunnelDnsMode) -> Unit,
-    tunnelDnsMode: TunnelDnsMode,
+fun TransitDnsPolicyBottomSheet(
+    onPolicyChange: (ForeignDnsPolicy) -> Unit,
+    policy: ForeignDnsPolicy,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
 
     CustomBottomSheet(
-        enumEntries<TunnelDnsMode>().map {
-            val icon = it.asIcon()
+        enumEntries<ForeignDnsPolicy>().map {
             SheetOption(
-                icon,
+                leadingIcon = it.asIcon(),
                 label = it.asString(context),
                 onClick = {
                     onDismiss()
-                    onTunnelDnsModeChange(it)
+                    onPolicyChange(it)
                 },
                 description = it.asDescription(context),
-                selected = tunnelDnsMode == it,
+                selected = policy == it,
             )
         },
-        title = stringResource(R.string.tunnel_dns_mode),
-        description = stringResource(R.string.tunnel_dns_mode_desc),
+        title = stringResource(R.string.transit_dns_policy),
+        description = stringResource(R.string.transit_dns_policy_desc),
     ) {
         onDismiss()
     }
