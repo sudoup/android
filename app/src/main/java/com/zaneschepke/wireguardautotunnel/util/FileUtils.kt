@@ -327,7 +327,6 @@ class FileUtils(private val context: Context, private val ioDispatcher: Coroutin
         const val ZIP_FILE_MIME_TYPE = "application/zip"
         const val ALL_FILE_TYPES = "*/*"
 
-        const val ALLOWED_TV_FILE_TYPES = "${TEXT_MIME_TYPE}|${ZIP_FILE_MIME_TYPE}"
         const val GOOGLE_TV_EXPLORER_STUB = "com.google.android.tv.frameworkpackagestubs"
         const val ANDROID_TV_EXPLORER_STUB = "com.android.tv.frameworkpackagestubs"
 
