@@ -98,6 +98,12 @@
     <string name="trusted_wifi_names">Доверенные сети Wi-Fi</string>
     <string name="add_wifi_name">Добавить сеть Wi-Fi</string>
     <string name="primary_tunnel">Основной туннель</string>
+    <string name="entry_tunnel">Входной туннель</string>
+    <string name="entry_tunnel_desc">Направлять этот туннель через другой туннель.</string>
+    <string name="entry_tunnel_none">Нет</string>
+    <string name="entry_tunnel_none_desc">Использовать этот туннель самостоятельно.</string>
+    <string name="entry_tunnel_add_another">Добавить другой туннель в качестве входного.</string>
+    <string name="via_entry">через %1$s</string>
     <string name="skip">Пропустить</string>
     <string name="launch_app_settings">Настройки запуска приложения</string>
     <string name="use_wildcards">Использовать подстановочные знаки в имени</string>
@@ -232,6 +238,8 @@
     <string name="selected">Выбрано</string>
     <string name="socks_5_proxy">SOCKS5-прокси</string>
     <string name="http_proxy">HTTP-прокси</string>
+    <string name="allow_socks4">Разрешать SOCKS4</string>
+    <string name="allow_socks4_desc">Принимать подключения SOCKS4 через прокси-сервер SOCKS5. Доступно только при отключенных учётных данных прокси-сервера.</string>
     <string name="username">Пользователь</string>
     <string name="password">Пароль</string>
     <string name="proxy_credentials">Учётные данные прокси</string>
@@ -245,6 +253,8 @@
     <string name="locked_down">Заблокировано</string>
     <string name="system">Системный</string>
     <string name="doh">DNS через HTTPS (DoH)</string>
+    <string name="doh_desc">Получить через DNS-over-HTTPS</string>
+    <string name="bootstrap_system_dns_desc">Получить через DNS устройства</string>
     <string name="comma_separated">Разделённые запятой</string>
     <string name="server_port">Сервер:порт</string>
     <string name="new_tunnel">Новый туннель</string>
@@ -283,6 +293,7 @@
     <string name="other">Другое</string>
     <string name="options">Параметры</string>
     <string name="general">Общие</string>
+    <string name="multihop">Мультихоп</string>
     <string name="networks">Сети</string>
     <string name="preferred_tunnel_label">Предпочтительный туннель: </string>
     <string name="preferred_tunnel">Предпочтительный туннель</string>
@@ -347,8 +358,11 @@
     <string name="automation">Автоматизация</string>
     <string name="peer_resolution">Сопоставление узлов</string>
     <string name="resolution_method">Метод</string>
+    <string name="resolution_method_desc">Способ получения имён узлов, необходимых для создания туннеля</string>
     <string name="dot">DNS через TLS (DoT)</string>
+    <string name="dot_desc">Получить через DNS-over-TLS</string>
     <string name="plain_dns">Обычный DNS (порт 53)</string>
+    <string name="plain_dns_desc">Получить через незашифрованный DNS</string>
     <string name="current_system_dns">Текущий системный DNS</string>
     <string name="dns_error_empty">Точка подключения не может быть пустой</string>
     <string name="dns_error_invalid_url">Неправильный формат URL</string>
@@ -397,9 +411,13 @@
     <string name="statistics">Статистика</string>
     <string name="tunnel_statistics">Показывать статистику</string>
     <string name="refresh_rate">Обновление</string>
+    <string name="refresh_rate_desc">Частота обновления статистики туннелей</string>
     <string name="balanced">Оптимальное (3 с.)</string>
+    <string name="statistic_refresh_balanced_desc">Хороший баланс актуальности и использования батареи</string>
     <string name="live">Непрерывное (1 с.)</string>
+    <string name="statistic_refresh_live_desc">Ежесекундное обновление, большее использование батареи</string>
     <string name="balance_saver">Экономное (10 с.)</string>
+    <string name="statistic_refresh_battery_saver_desc">Нечастое обновление, экономное использование батареи</string>
     <string name="tunnel_scripting">Поддержка сценариев</string>
     <string name="name_error_empty">Имя туннеля не может быть пустым</string>
     <string name="more_options">Другие настройки</string>
@@ -496,10 +514,13 @@
     <string name="split_dns_desc">Выбор разрешения между системным и туннельным DNS для доменных суффиксов</string>
     <string name="system_dns_only_desc">Все DNS-запросы отправляются на DNS-серверы провайдера или локальной сети, в обход туннеля</string>
     <string name="protocol">Протокол</string>
+    <string name="protocol_desc">Транспорт, используемый для DNS-запросов через туннель</string>
     <string name="tunnel_dns_mode">Режим DNS</string>
+    <string name="tunnel_dns_mode_desc">Работа DNS при активном туннеле</string>
     <string name="tunnel_dns">Туннельный DNS</string>
     <string name="use_tunnel_dns_servers">DNS-серверы туннеля</string>
     <string name="split_suffix_target">Маршрутизация суффиксов</string>
+    <string name="split_suffix_target_sheet_desc">Какая система обрабатывает указанные выше доменные суффиксы</string>
     <string name="split_suffix_target_system">Системный DNS</string>
     <string name="split_suffix_target_tunnel">Туннельный DNS</string>
     <string name="split_suffix_target_desc_system">Доменные суффиксы маршрутизируются через системный DNS. Все остальные запросы используют туннельный DNS.</string>
@@ -508,8 +529,11 @@
     <string name="transit_dns_policy">Транзитные DNS-запросы</string>
     <string name="transit_dns_policy_desc">Обработка обычных DNS-запросов, отправленные на сервер, отличный туннельного DNS</string>
     <string name="transit_dns_redirect">Перенаправить</string>
+    <string name="transit_dns_redirect_desc">Перехват и перенаправление запросов на настроенные туннельные DNS и протокол</string>
     <string name="transit_dns_block">Блокировать</string>
+    <string name="transit_dns_block_desc">Удалить запрос</string>
     <string name="transit_dns_allow">Разрешить</string>
+    <string name="transit_dns_allow_desc">Пропустить запрос без изменений</string>
     <string name="error_config_missing_dns">В туннеле %1$s отсутствуют DNS-серверы, необходимые для вашего приложения</string>
     <string name="active_tunnel_updated">Активный туннель обновлён</string>
     <string name="display">Отображение</string>
@@ -551,5 +575,26 @@
         <item quantity="few">%d туннеля</item>
         <item quantity="many">%d туннелей</item>
         <item quantity="other">%d туннелей</item>
+    </plurals>
+    <string name="create">Создать</string>
+    <string name="move">Переместить</string>
+    <string name="create_group">Создать группу</string>
+    <plurals name="tunnels_will_move_to_group">
+        <item quantity="one">%d туннель будет перемещён в эту группу</item>
+        <item quantity="few">%d туннеля будут перемещены в эту группу</item>
+        <item quantity="many">%d туннелей будет перемещено в эту группу</item>
+        <item quantity="other">%d туннелей будет перемещено в эту группу</item>
+    </plurals>
+    <plurals name="move_n_tunnels_to">
+        <item quantity="one">Переместить %d туннель в</item>
+        <item quantity="few">Переместить %d туннеля в</item>
+        <item quantity="many">Переместить %d туннелей в</item>
+        <item quantity="other">Переместить %d туннелей в</item>
+    </plurals>
+    <plurals name="move_n_tunnels">
+        <item quantity="one">Переместить %d туннель</item>
+        <item quantity="few">Переместить %d туннеля</item>
+        <item quantity="many">Переместить %d туннелей</item>
+        <item quantity="other">Переместить %d туннелей</item>
     </plurals>
 </resources>
