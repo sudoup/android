@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.zaneschepke.wireguardautotunnel.R
+import com.zaneschepke.wireguardautotunnel.ui.theme.Disabled
 
 @Composable
 fun <T> DropdownSelector(
@@ -28,20 +29,27 @@ fun <T> DropdownSelector(
     label: @Composable (() -> Unit)? = null,
     isExpanded: Boolean = false,
     onDismiss: () -> Unit = {},
+    enabled: Boolean = true,
     optionToString: @Composable (T?) -> String = {
         it?.toString() ?: stringResource(R.string._default)
     },
 ) {
+    val contentColor = if (enabled) MaterialTheme.colorScheme.onSurface else Disabled
     Box(modifier = modifier) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(5.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (label != null) label()
-            Text(text = optionToString(currentValue), style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = optionToString(currentValue),
+                style = MaterialTheme.typography.bodyMedium,
+                color = contentColor,
+            )
             Icon(
                 Icons.Default.ArrowDropDown,
                 contentDescription = stringResource(R.string.dropdown),
+                tint = contentColor,
             )
         }
 

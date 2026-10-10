@@ -10,6 +10,7 @@ import com.zaneschepke.wireguardautotunnel.domain.model.TunnelConfig
 import com.zaneschepke.wireguardautotunnel.domain.repository.DnsSettingsRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.GeneralSettingRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.GlobalEffectRepository
+import com.zaneschepke.wireguardautotunnel.domain.repository.TunnelGroupRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.TunnelRepository
 import com.zaneschepke.wireguardautotunnel.domain.sideeffect.GlobalSideEffect
 import com.zaneschepke.wireguardautotunnel.ui.state.ConfigDraft
@@ -19,6 +20,7 @@ import com.zaneschepke.wireguardautotunnel.ui.state.EditableConfig
 import com.zaneschepke.wireguardautotunnel.ui.state.EditableInterface
 import com.zaneschepke.wireguardautotunnel.ui.state.EditablePeer
 import com.zaneschepke.wireguardautotunnel.ui.state.GlobalSettingsState
+import com.zaneschepke.wireguardautotunnel.ui.state.shiftRootPositionsBy
 import com.zaneschepke.wireguardautotunnel.util.StringValue
 import com.zaneschepke.wireguardautotunnel.util.extensions.asStringValue
 import kotlinx.coroutines.flow.combine
@@ -29,6 +31,7 @@ import timber.log.Timber
 
 class ConfigEditViewModel(
     private val tunnelRepository: TunnelRepository,
+    private val tunnelGroupRepository: TunnelGroupRepository,
     private val dnsSettingsRepository: DnsSettingsRepository,
     private val settingsRepository: GeneralSettingRepository,
     private val globalEffectRepository: GlobalEffectRepository,
@@ -130,7 +133,14 @@ class ConfigEditViewModel(
 
             val tunnelConfig =
                 if (tunnelId == null) {
-                    TunnelConfig.fromConfig(config, state.draft.tunnelName)
+                    // New tunnels land at the top
+                    val groups = tunnelGroupRepository.getAll()
+                    val tunnels = tunnelRepository.getAll()
+                    val (shiftedGroups, shiftedTunnels) =
+                        shiftRootPositionsBy(groups, tunnels, count = 1)
+                    tunnelGroupRepository.saveAll(shiftedGroups)
+                    tunnelRepository.saveAll(shiftedTunnels)
+                    TunnelConfig.fromConfig(config, state.draft.tunnelName).copy(position = 0)
                 } else {
                     state.tunnel?.copy(
                         name = state.draft.tunnelName,

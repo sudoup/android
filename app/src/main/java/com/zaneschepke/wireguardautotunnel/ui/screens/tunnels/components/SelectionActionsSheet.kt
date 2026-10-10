@@ -1,7 +1,6 @@
 package com.zaneschepke.wireguardautotunnel.ui.screens.tunnels.components
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.CopyAll
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DeleteForever
@@ -24,7 +23,6 @@ fun SelectionActionsSheet(
     uiState: TunnelsUiState,
     onDismiss: () -> Unit,
     onSelectAll: () -> Unit,
-    onMoveToGroup: () -> Unit,
     onUngroup: () -> Unit,
     onExport: () -> Unit,
     onCopy: () -> Unit,
@@ -97,18 +95,6 @@ fun SelectionActionsSheet(
                     )
                 }
             } else {
-                if (uiState.canMoveToGroup) {
-                    add(
-                        SheetOption(
-                            Icons.AutoMirrored.Outlined.DriveFileMove,
-                            stringResource(R.string.move_to_group),
-                            onClick = {
-                                onDismiss()
-                                onMoveToGroup()
-                            },
-                        )
-                    )
-                }
                 if (uiState.canUngroup) {
                     add(
                         SheetOption(

@@ -285,6 +285,8 @@
     <string name="locked_down">Locked down</string>
     <string name="system">System</string>
     <string name="doh">DNS over HTTPS (DoH)</string>
+    <string name="doh_desc">Resolve using DNS-over-HTTPS</string>
+    <string name="bootstrap_system_dns_desc">Resolve using the device\'s configured DNS</string>
     <string name="comma_separated">Comma separated</string>
     <string name="server_port">Server:Port</string>
     <string name="new_tunnel">New tunnel</string>
@@ -447,8 +449,11 @@
     <string name="automation">Automation</string>
     <string name="peer_resolution">Peer Resolution</string>
     <string name="resolution_method">Resolution method</string>
+    <string name="resolution_method_desc">How hostnames needed to establish the tunnel are resolved</string>
     <string name="dot">DNS over TLS (DoT)</string>
+    <string name="dot_desc">Resolve using DNS-over-TLS</string>
     <string name="plain_dns">Plain DNS (port 53)</string>
+    <string name="plain_dns_desc">Resolve using unencrypted DNS</string>
     <string name="current_system_dns">Current system DNS</string>
     <string name="dns_error_empty">Endpoint cannot be empty</string>
     <string name="dns_error_invalid_url">Invalid URL format</string>
@@ -520,9 +525,13 @@
     <string name="statistics">Statistics</string>
     <string name="tunnel_statistics">Live tunnel statistics</string>
     <string name="refresh_rate">Statistics refresh rate</string>
+    <string name="refresh_rate_desc">How often live tunnel statistics are updated</string>
     <string name="balanced">Balanced (3s)</string>
+    <string name="statistic_refresh_balanced_desc">Good balance of freshness and battery use</string>
     <string name="live">Real-time (1s)</string>
+    <string name="statistic_refresh_live_desc">Updates every second, uses more battery</string>
     <string name="balance_saver">Battery Saver (10s)</string>
+    <string name="statistic_refresh_battery_saver_desc">Updates less often to save battery</string>
     <string name="tunnel_scripting">Pre/Post script support</string>
     <string name="name_error_empty">Tunnel name cannot be empty</string>
     <string name="more_options">More options</string>
@@ -633,20 +642,26 @@
     <string name="split_dns_desc">Split resolution by domain suffix between system DNS and tunnel DNS</string>
     <string name="system_dns_only_desc">All DNS queries are send to the system\'s DNS servers and bypass the tunnel</string>
     <string name="protocol">Protocol</string>
+    <string name="protocol_desc">The transport used for DNS requests through the tunnel</string>
     <string name="tunnel_dns_mode">Tunnel DNS mode</string>
+    <string name="tunnel_dns_mode_desc">How DNS is resolved while the tunnel is active</string>
     <string name="tunnel_dns">Tunnel DNS</string>
     <string name="use_tunnel_dns_servers">Use tunnel DNS servers</string>
     <string name="split_suffix_target">Route suffixes via</string>
+    <string name="split_suffix_target_sheet_desc">Which resolver handles the domain suffixes above</string>
     <string name="split_suffix_target_system">System DNS</string>
     <string name="split_suffix_target_tunnel">Tunnel DNS</string>
     <string name="split_suffix_target_desc_system">Domain suffixes routed to system DNS. All other queries use tunnel DNS.</string>
     <string name="split_suffix_target_desc_tunnel">Domain suffixes routed to tunnel DNS. All other queries use system DNS.</string>
     <string name="private_dns_enabled_warning">Private DNS is enabled. Disable it for tunnel DNS to work properly</string>
     <string name="transit_dns_policy">Transit DNS requests</string>
-    <string name="transit_dns_policy_desc">How to handle plain DNS request sent to a server different than the tunnel\'s DNS servers</string>
+    <string name="transit_dns_policy_desc">How to handle plain DNS request sent to a server different from the tunnel DNS servers</string>
     <string name="transit_dns_redirect">Redirect</string>
+    <string name="transit_dns_redirect_desc">Intercepts and redirects these requests to the configured tunnel DNS servers and protocol</string>
     <string name="transit_dns_block">Block</string>
+    <string name="transit_dns_block_desc">Drop the request</string>
     <string name="transit_dns_allow">Allow</string>
+    <string name="transit_dns_allow_desc">Let the request through unmodified</string>
     <string name="error_config_missing_dns">Tunnel %1$s is missing DNS servers that are required for your current app settings</string>
     <string name="active_tunnel_updated">Active tunnel updated</string>
     <string name="display">Display</string>
@@ -681,12 +696,26 @@
     <string name="collapse_group">Collapse group</string>
     <string name="group_with_count">%1$s (%2$d)</string>
     <string name="group_active_count">%1$d active</string>
-    <string name="add_group_ellipsis">Add group…</string>
     <string name="no_tunnels_in_group">This group has no tunnels to export</string>
     <string name="n_selected">%d selected</string>
     <plurals name="group_tunnel_count">
         <item quantity="one">%d tunnel</item>
         <item quantity="other">%d tunnels</item>
+    </plurals>
+    <string name="create">Create</string>
+    <string name="move">Move</string>
+    <string name="create_group">Create group</string>
+    <plurals name="tunnels_will_move_to_group">
+        <item quantity="one">%d tunnel will be moved to this group</item>
+        <item quantity="other">%d tunnels will be moved to this group</item>
+    </plurals>
+    <plurals name="move_n_tunnels_to">
+        <item quantity="one">Move %d tunnel to</item>
+        <item quantity="other">Move %d tunnels to</item>
+    </plurals>
+    <plurals name="move_n_tunnels">
+        <item quantity="one">Move %d tunnel</item>
+        <item quantity="other">Move %d tunnels</item>
     </plurals>
     <string name="socks5" translatable="false">SOCKS5</string>
     <string name="http" translatable="false">HTTP</string>

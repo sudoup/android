@@ -4,36 +4,35 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.zaneschepke.wireguardautotunnel.R
-import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelDnsMode
+import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelDnsProtocol
 import com.zaneschepke.wireguardautotunnel.ui.common.sheet.CustomBottomSheet
 import com.zaneschepke.wireguardautotunnel.ui.common.sheet.SheetOption
 import com.zaneschepke.wireguardautotunnel.util.extensions.asIcon
-import kotlin.enums.enumEntries
 
 @Composable
-fun TunnelDnsModeBottomSheet(
-    onTunnelDnsModeChange: (TunnelDnsMode) -> Unit,
-    tunnelDnsMode: TunnelDnsMode,
+fun ProtocolBottomSheet(
+    options: List<TunnelDnsProtocol>,
+    onProtocolChange: (TunnelDnsProtocol) -> Unit,
+    protocol: TunnelDnsProtocol,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
 
     CustomBottomSheet(
-        enumEntries<TunnelDnsMode>().map {
-            val icon = it.asIcon()
+        options.map {
             SheetOption(
-                icon,
+                leadingIcon = it.asIcon(),
                 label = it.asString(context),
                 onClick = {
                     onDismiss()
-                    onTunnelDnsModeChange(it)
+                    onProtocolChange(it)
                 },
                 description = it.asDescription(context),
-                selected = tunnelDnsMode == it,
+                selected = protocol == it,
             )
         },
-        title = stringResource(R.string.tunnel_dns_mode),
-        description = stringResource(R.string.tunnel_dns_mode_desc),
+        title = stringResource(R.string.protocol),
+        description = stringResource(R.string.protocol_desc),
     ) {
         onDismiss()
     }

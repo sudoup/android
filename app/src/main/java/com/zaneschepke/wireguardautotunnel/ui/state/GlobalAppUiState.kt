@@ -14,6 +14,7 @@ data class GlobalAppUiState(
     val isAutoTunnelActive: Boolean = false,
     val tunnelNames: Map<Int, String> = emptyMap(),
     val selectedTunnelCount: Int = 0,
+    val canMoveToGroup: Boolean = false,
     val isReorderMode: Boolean = false,
     val reorderScopeTitle: String? = null,
     val hasGroups: Boolean = false,

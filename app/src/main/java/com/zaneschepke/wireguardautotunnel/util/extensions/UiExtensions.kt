@@ -7,9 +7,17 @@ import android.icu.util.MeasureUnit
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.CallSplit
+import androidx.compose.material.icons.automirrored.outlined.Forward
+import androidx.compose.material.icons.outlined.Balance
+import androidx.compose.material.icons.outlined.BatterySaver
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.EnhancedEncryption
+import androidx.compose.material.icons.outlined.Https
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.NoEncryption
+import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.VpnKey
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.runtime.Composable
@@ -20,7 +28,12 @@ import com.wgtunnel.backend.model.dns.DnsValidationError
 import com.wgtunnel.backend.state.ActiveTunnel
 import com.zaneschepke.networkmonitor.AndroidNetworkMonitor
 import com.zaneschepke.wireguardautotunnel.R
+import com.zaneschepke.wireguardautotunnel.domain.enums.BootstrapDnsProtocol
+import com.zaneschepke.wireguardautotunnel.domain.enums.ForeignDnsPolicy
+import com.zaneschepke.wireguardautotunnel.domain.enums.SplitDnsSuffixTarget
+import com.zaneschepke.wireguardautotunnel.domain.enums.StatisticRefresh
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelDnsMode
+import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelDnsProtocol
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelMode
 import com.zaneschepke.wireguardautotunnel.domain.enums.WifiDetectionMethod
 import com.zaneschepke.wireguardautotunnel.domain.model.TunnelConfig
@@ -92,6 +105,46 @@ fun TunnelDnsMode.asIcon(): ImageVector {
         TunnelDnsMode.Encrypted -> Icons.Outlined.EnhancedEncryption
         TunnelDnsMode.Split -> Icons.AutoMirrored.Outlined.CallSplit
         TunnelDnsMode.AllLocal -> Icons.Outlined.Wifi
+    }
+}
+
+fun BootstrapDnsProtocol.asIcon(): ImageVector {
+    return when (this) {
+        BootstrapDnsProtocol.SYSTEM -> Icons.Outlined.PhoneAndroid
+        BootstrapDnsProtocol.DOH -> Icons.Outlined.Https
+        BootstrapDnsProtocol.DOT -> Icons.Outlined.EnhancedEncryption
+        BootstrapDnsProtocol.UDP -> Icons.Outlined.NoEncryption
+    }
+}
+
+fun TunnelDnsProtocol.asIcon(): ImageVector {
+    return when (this) {
+        TunnelDnsProtocol.Doh -> Icons.Outlined.Https
+        TunnelDnsProtocol.Dot -> Icons.Outlined.EnhancedEncryption
+        TunnelDnsProtocol.Plain -> Icons.Outlined.NoEncryption
+    }
+}
+
+fun ForeignDnsPolicy.asIcon(): ImageVector {
+    return when (this) {
+        ForeignDnsPolicy.Redirect -> Icons.AutoMirrored.Outlined.Forward
+        ForeignDnsPolicy.Block -> Icons.Outlined.Block
+        ForeignDnsPolicy.Allow -> Icons.Outlined.LockOpen
+    }
+}
+
+fun SplitDnsSuffixTarget.asIcon(): ImageVector {
+    return when (this) {
+        SplitDnsSuffixTarget.System -> Icons.Outlined.PhoneAndroid
+        SplitDnsSuffixTarget.Tunnel -> Icons.Outlined.VpnKey
+    }
+}
+
+fun StatisticRefresh.asIcon(): ImageVector {
+    return when (this) {
+        StatisticRefresh.LIVE -> Icons.Outlined.Bolt
+        StatisticRefresh.BALANCED -> Icons.Outlined.Balance
+        StatisticRefresh.BATTERY_SAVER -> Icons.Outlined.BatterySaver
     }
 }
 

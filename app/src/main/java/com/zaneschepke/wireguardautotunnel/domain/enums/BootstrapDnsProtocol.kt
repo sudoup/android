@@ -19,6 +19,15 @@ enum class BootstrapDnsProtocol(val value: Int) {
         }
     }
 
+    fun asDescription(context: Context): String {
+        return when (this) {
+            SYSTEM -> context.getString(R.string.bootstrap_system_dns_desc)
+            DOH -> context.getString(R.string.doh_desc)
+            DOT -> context.getString(R.string.dot_desc)
+            UDP -> context.getString(R.string.plain_dns_desc)
+        }
+    }
+
     fun toCore(): DnsEndpointProtocol =
         when (this) {
             SYSTEM -> DnsEndpointProtocol.SYSTEM

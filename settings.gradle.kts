@@ -1,29 +1,28 @@
 pluginManagement {
-	repositories {
-		mavenLocal()
-		google()
-		mavenCentral()
-		gradlePluginPortal()
-	}
-}
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+    repositories {
+        mavenLocal()
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
 }
 
+plugins { id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0" }
+
 dependencyResolutionManagement {
-	repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-	repositories {
-		mavenLocal()
-		google()
-		mavenCentral()
-		maven { url = uri("https://jitpack.io") }
-	}
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        mavenLocal()
+        google()
+        mavenCentral()
+        maven { url = uri("https://jitpack.io") }
+    }
 }
 
 rootProject.name = "WG Tunnel"
 
 // Local dev
-//includeBuild("../core") {
+// includeBuild("../core") {
 //	dependencySubstitution {
 //		substitute(module("com.wgtunnel:backend"))
 //			.using(project(":backend"))
@@ -36,9 +35,12 @@ rootProject.name = "WG Tunnel"
 //		substitute(module("com.wgtunnel:parser"))
 //			.using(project(":parser"))
 //	}
-//}
+// }
 
 include(":app")
+
 include(":logcatter")
+
 include(":networkmonitor")
+
 include(":pinger")

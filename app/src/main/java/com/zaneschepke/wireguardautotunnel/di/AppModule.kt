@@ -79,7 +79,7 @@ val appModule = module {
     single { NetworkUtils(get(named(Dispatcher.IO))) }
 
     viewModelOf(::AutoTunnelViewModel)
-    viewModel { (id: Int?) -> ConfigEditViewModel(get(), get(), get(), get(), get(), id) }
+    viewModel { (id: Int?) -> ConfigEditViewModel(get(), get(), get(), get(), get(), get(), id) }
     viewModelOf(::DnsViewModel)
     viewModelOf(::LockdownViewModel)
     viewModelOf(::LoggerViewModel)

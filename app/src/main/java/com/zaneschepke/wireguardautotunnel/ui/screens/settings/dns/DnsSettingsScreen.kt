@@ -38,19 +38,23 @@ import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.domain.constants.TunnelDns
 import com.zaneschepke.wireguardautotunnel.domain.enums.BootstrapDnsProtocol
 import com.zaneschepke.wireguardautotunnel.domain.enums.ForeignDnsPolicy
-import com.zaneschepke.wireguardautotunnel.domain.enums.SplitDnsSuffixTarget
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelDnsMode
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelDnsProtocol
+import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelMode
 import com.zaneschepke.wireguardautotunnel.ui.common.banner.WarningBanner
 import com.zaneschepke.wireguardautotunnel.ui.common.button.SurfaceRow
 import com.zaneschepke.wireguardautotunnel.ui.common.button.ThemedSwitch
 import com.zaneschepke.wireguardautotunnel.ui.common.dialog.rememberRestartToApplyChanges
-import com.zaneschepke.wireguardautotunnel.ui.common.dropdown.LabeledDropdown
 import com.zaneschepke.wireguardautotunnel.ui.common.label.GroupLabel
 import com.zaneschepke.wireguardautotunnel.ui.common.text.DescriptionText
 import com.zaneschepke.wireguardautotunnel.ui.common.textbox.ConfigurationTextBox
+import com.zaneschepke.wireguardautotunnel.ui.screens.settings.dns.components.ProtocolBottomSheet
+import com.zaneschepke.wireguardautotunnel.ui.screens.settings.dns.components.ResolutionMethodBottomSheet
+import com.zaneschepke.wireguardautotunnel.ui.screens.settings.dns.components.SplitSuffixTargetBottomSheet
+import com.zaneschepke.wireguardautotunnel.ui.screens.settings.dns.components.TransitDnsPolicyBottomSheet
 import com.zaneschepke.wireguardautotunnel.ui.screens.settings.dns.components.TunnelDnsModeBottomSheet
 import com.zaneschepke.wireguardautotunnel.ui.sideeffect.LocalSideEffect
+import com.zaneschepke.wireguardautotunnel.ui.theme.Disabled
 import com.zaneschepke.wireguardautotunnel.util.extensions.launchNetworkAndInternetSettings
 import com.zaneschepke.wireguardautotunnel.viewmodel.DnsViewModel
 import com.zaneschepke.wireguardautotunnel.viewmodel.SharedAppViewModel
@@ -66,7 +70,12 @@ fun DnsSettingsScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.collectAsState()
+    val sharedUiState by sharedViewModel.collectAsState()
     var showAppModeSheet by rememberSaveable { mutableStateOf(false) }
+    var showResolutionMethodSheet by rememberSaveable { mutableStateOf(false) }
+    var showProtocolSheet by rememberSaveable { mutableStateOf(false) }
+    var showTransitPolicySheet by rememberSaveable { mutableStateOf(false) }
+    var showSplitSuffixTargetSheet by rememberSaveable { mutableStateOf(false) }
 
     if (uiState.isLoading) return
 
@@ -89,6 +98,46 @@ fun DnsSettingsScreen(
             uiState.dnsSettings.tunnelDnsMode,
         ) {
             showAppModeSheet = false
+        }
+    }
+
+    if (showResolutionMethodSheet) {
+        ResolutionMethodBottomSheet(
+            onProtocolChange = viewModel::setBootstrapDnsProtocol,
+            protocol = uiState.dnsSettings.bootstrapDnsProtocol,
+        ) {
+            showResolutionMethodSheet = false
+        }
+    }
+
+    val isSplitMode = uiState.dnsSettings.tunnelDnsMode.isSplitMode()
+    if (showProtocolSheet) {
+        ProtocolBottomSheet(
+            options =
+                if (isSplitMode) TunnelDnsProtocol.entries
+                else TunnelDnsProtocol.entries.filter { it != TunnelDnsProtocol.Plain },
+            onProtocolChange = viewModel::setTunnelDnsProtocol,
+            protocol = uiState.dnsSettings.tunnelDnsProtocol,
+        ) {
+            showProtocolSheet = false
+        }
+    }
+
+    if (showTransitPolicySheet) {
+        TransitDnsPolicyBottomSheet(
+            onPolicyChange = viewModel::setForeignDnsPolicy,
+            policy = uiState.dnsSettings.foreignDnsPolicy,
+        ) {
+            showTransitPolicySheet = false
+        }
+    }
+
+    if (showSplitSuffixTargetSheet) {
+        SplitSuffixTargetBottomSheet(
+            onTargetChange = viewModel::setSplitSuffixTarget,
+            target = uiState.dnsSettings.splitSuffixTarget,
+        ) {
+            showSplitSuffixTargetSheet = false
         }
     }
 
@@ -178,15 +227,21 @@ fun DnsSettingsScreen(
                 stringResource(R.string.peer_resolution),
                 Modifier.padding(horizontal = 16.dp),
             )
-            LabeledDropdown(
-                title = stringResource(R.string.resolution_method),
+            SurfaceRow(
                 leading = { Icon(Icons.Outlined.Dns, contentDescription = null) },
-                currentValue = uiState.dnsSettings.bootstrapDnsProtocol,
-                onSelected = { selected ->
-                    selected?.let { viewModel.setBootstrapDnsProtocol(it) }
+                trailing = { modifier ->
+                    IconButton(onClick = { showResolutionMethodSheet = true }, modifier) {
+                        Icon(
+                            Icons.Outlined.ExpandMore,
+                            contentDescription = stringResource(R.string.select),
+                        )
+                    }
                 },
-                options = BootstrapDnsProtocol.entries,
-                optionToString = { (it ?: BootstrapDnsProtocol.SYSTEM).asString(context) },
+                title = stringResource(R.string.resolution_method),
+                description = {
+                    DescriptionText(uiState.dnsSettings.bootstrapDnsProtocol.asString(context))
+                },
+                onClick = { showResolutionMethodSheet = true },
             )
             AnimatedVisibility(
                 uiState.dnsSettings.bootstrapDnsProtocol != BootstrapDnsProtocol.SYSTEM
@@ -218,12 +273,7 @@ fun DnsSettingsScreen(
                 },
                 title = stringResource(R.string.tunnel_dns_mode),
                 description = {
-                    DescriptionText(
-                        stringResource(
-                            R.string.current_template,
-                            uiState.dnsSettings.tunnelDnsMode.asString(context),
-                        )
-                    )
+                    DescriptionText(uiState.dnsSettings.tunnelDnsMode.asString(context))
                 },
                 onClick = { showAppModeSheet = true },
             )
@@ -232,26 +282,28 @@ fun DnsSettingsScreen(
                     setOf(TunnelDnsMode.Encrypted, TunnelDnsMode.Split, TunnelDnsMode.AllLocal)
             ) {
                 Column {
-                    val isSplitMode = uiState.dnsSettings.tunnelDnsMode.isSplitMode()
                     val showCustomServer =
                         !isSplitMode ||
                             !(uiState.dnsSettings.useTunnelDnsServersInSplit &&
                                 uiState.dnsSettings.tunnelDnsProtocol == TunnelDnsProtocol.Plain)
                     if (uiState.dnsSettings.tunnelDnsMode != TunnelDnsMode.AllLocal) {
-                        LabeledDropdown(
-                            title = stringResource(R.string.protocol),
+                        SurfaceRow(
                             leading = { Icon(Icons.Outlined.Router, contentDescription = null) },
-                            currentValue = uiState.dnsSettings.tunnelDnsProtocol,
-                            onSelected = { selected ->
-                                selected?.let { viewModel.setTunnelDnsProtocol(it) }
+                            trailing = { modifier ->
+                                IconButton(onClick = { showProtocolSheet = true }, modifier) {
+                                    Icon(
+                                        Icons.Outlined.ExpandMore,
+                                        contentDescription = stringResource(R.string.select),
+                                    )
+                                }
                             },
-                            options =
-                                if (isSplitMode) TunnelDnsProtocol.entries
-                                else
-                                    TunnelDnsProtocol.entries.filter {
-                                        it != TunnelDnsProtocol.Plain
-                                    },
-                            optionToString = { (it ?: TunnelDnsProtocol.Doh).asString(context) },
+                            title = stringResource(R.string.protocol),
+                            description = {
+                                DescriptionText(
+                                    uiState.dnsSettings.tunnelDnsProtocol.asString(context)
+                                )
+                            },
+                            onClick = { showProtocolSheet = true },
                         )
                     }
                     if (
@@ -304,43 +356,71 @@ fun DnsSettingsScreen(
                                     isError = uiState.localSuffixesError != null,
                                     onValueChange = viewModel::setLocalDomainSuffixes,
                                 )
-                                LabeledDropdown(
-                                    title = stringResource(R.string.split_suffix_target),
+                                SurfaceRow(
                                     leading = {
                                         Icon(
                                             Icons.AutoMirrored.Outlined.AltRoute,
                                             contentDescription = null,
                                         )
                                     },
-                                    currentValue = uiState.dnsSettings.splitSuffixTarget,
-                                    onSelected = { selected ->
-                                        selected?.let { viewModel.setSplitSuffixTarget(it) }
+                                    trailing = { modifier ->
+                                        IconButton(
+                                            onClick = { showSplitSuffixTargetSheet = true },
+                                            modifier,
+                                        ) {
+                                            Icon(
+                                                Icons.Outlined.ExpandMore,
+                                                contentDescription =
+                                                    stringResource(R.string.select),
+                                            )
+                                        }
                                     },
-                                    options = SplitDnsSuffixTarget.entries,
-                                    optionToString = {
-                                        (it ?: SplitDnsSuffixTarget.System).asString(context)
+                                    title = stringResource(R.string.split_suffix_target),
+                                    description = {
+                                        DescriptionText(
+                                            uiState.dnsSettings.splitSuffixTarget.asString(context)
+                                        )
                                     },
-                                )
-                                DescriptionText(
-                                    uiState.dnsSettings.splitSuffixTarget.asDescription(context),
-                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                    onClick = { showSplitSuffixTargetSheet = true },
                                 )
                             }
                         }
                     }
-                    LabeledDropdown(
-                        title = stringResource(R.string.transit_dns_policy),
-                        leading = { Icon(Icons.Outlined.Dns, contentDescription = null) },
-                        currentValue = uiState.dnsSettings.foreignDnsPolicy,
-                        onSelected = { selected ->
-                            selected?.let { viewModel.setForeignDnsPolicy(it) }
+                    val transitPolicyLocked = sharedUiState.tunnelMode == TunnelMode.PROXY
+                    val transitPolicyValue =
+                        if (transitPolicyLocked) ForeignDnsPolicy.Redirect
+                        else uiState.dnsSettings.foreignDnsPolicy
+                    SurfaceRow(
+                        leading = {
+                            Icon(
+                                Icons.Outlined.Dns,
+                                contentDescription = null,
+                                tint =
+                                    if (transitPolicyLocked) Disabled
+                                    else MaterialTheme.colorScheme.onSurface,
+                            )
                         },
-                        options = ForeignDnsPolicy.entries,
-                        optionToString = { (it ?: ForeignDnsPolicy.Redirect).asString(context) },
-                    )
-                    DescriptionText(
-                        stringResource(R.string.transit_dns_policy_desc),
-                        modifier = Modifier.padding(horizontal = 16.dp),
+                        trailing = { modifier ->
+                            IconButton(
+                                onClick = { showTransitPolicySheet = true },
+                                modifier,
+                                enabled = !transitPolicyLocked,
+                            ) {
+                                Icon(
+                                    Icons.Outlined.ExpandMore,
+                                    contentDescription = stringResource(R.string.select),
+                                )
+                            }
+                        },
+                        title = stringResource(R.string.transit_dns_policy),
+                        description = {
+                            DescriptionText(
+                                transitPolicyValue.asString(context),
+                                disabled = transitPolicyLocked,
+                            )
+                        },
+                        enabled = !transitPolicyLocked,
+                        onClick = { showTransitPolicySheet = true },
                     )
                 }
             }

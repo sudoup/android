@@ -8,21 +8,26 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Analytics
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.zaneschepke.wireguardautotunnel.R
-import com.zaneschepke.wireguardautotunnel.domain.enums.StatisticRefresh
 import com.zaneschepke.wireguardautotunnel.ui.common.button.SurfaceRow
 import com.zaneschepke.wireguardautotunnel.ui.common.button.ThemedSwitch
-import com.zaneschepke.wireguardautotunnel.ui.common.dropdown.LabeledDropdown
 import com.zaneschepke.wireguardautotunnel.ui.common.label.GroupLabel
+import com.zaneschepke.wireguardautotunnel.ui.common.text.DescriptionText
+import com.zaneschepke.wireguardautotunnel.ui.screens.settings.monitoring.components.StatisticRefreshBottomSheet
 import com.zaneschepke.wireguardautotunnel.viewmodel.MonitoringViewModel
 import org.koin.androidx.compose.koinViewModel
 import org.orbitmvi.orbit.compose.collectAsState
@@ -31,8 +36,18 @@ import org.orbitmvi.orbit.compose.collectAsState
 fun MonitoringScreen(viewModel: MonitoringViewModel = koinViewModel()) {
     val context = LocalContext.current
     val uiState by viewModel.collectAsState()
+    var showRefreshRateSheet by rememberSaveable { mutableStateOf(false) }
 
     if (uiState.isLoading) return
+
+    if (showRefreshRateSheet) {
+        StatisticRefreshBottomSheet(
+            onRefreshChange = viewModel::onStatisticsIntervalChanged,
+            refresh = uiState.statisticRefresh,
+        ) {
+            showRefreshRateSheet = false
+        }
+    }
 
     Column(
         horizontalAlignment = Alignment.Start,
@@ -57,15 +72,19 @@ fun MonitoringScreen(viewModel: MonitoringViewModel = koinViewModel()) {
                     viewModel.onLiveTunnelStatisticsChanged(!uiState.tunnelStatisticsEnabled)
                 },
             )
-            LabeledDropdown(
-                title = stringResource(R.string.refresh_rate),
+            SurfaceRow(
                 leading = { Icon(Icons.Outlined.Timer, contentDescription = null) },
-                currentValue = uiState.statisticRefresh,
-                onSelected = { selected ->
-                    selected?.let { viewModel.onStatisticsIntervalChanged(it) }
+                trailing = { modifier ->
+                    IconButton(onClick = { showRefreshRateSheet = true }, modifier) {
+                        Icon(
+                            Icons.Outlined.ExpandMore,
+                            contentDescription = stringResource(R.string.select),
+                        )
+                    }
                 },
-                options = StatisticRefresh.entries,
-                optionToString = { (it ?: StatisticRefresh.BALANCED).asString(context) },
+                title = stringResource(R.string.refresh_rate),
+                description = { DescriptionText(uiState.statisticRefresh.asString(context)) },
+                onClick = { showRefreshRateSheet = true },
             )
         }
     }

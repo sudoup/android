@@ -30,9 +30,8 @@ import com.zaneschepke.wireguardautotunnel.ui.common.functions.rememberFileImpor
 import com.zaneschepke.wireguardautotunnel.ui.common.sheet.CustomBottomSheet
 import com.zaneschepke.wireguardautotunnel.ui.common.sheet.SheetOption
 import com.zaneschepke.wireguardautotunnel.ui.navigation.Route
-import com.zaneschepke.wireguardautotunnel.ui.screens.tunnels.components.AddMenuSheet
 import com.zaneschepke.wireguardautotunnel.ui.screens.tunnels.components.GroupNameDialog
-import com.zaneschepke.wireguardautotunnel.ui.screens.tunnels.components.MoveToGroupSheet
+import com.zaneschepke.wireguardautotunnel.ui.screens.tunnels.components.GroupSelectionSheet
 import com.zaneschepke.wireguardautotunnel.ui.screens.tunnels.components.SelectionActionsSheet
 import com.zaneschepke.wireguardautotunnel.ui.screens.tunnels.components.TunnelImportSheet
 import com.zaneschepke.wireguardautotunnel.ui.screens.tunnels.components.TunnelList
@@ -73,13 +72,10 @@ fun TunnelsScreen(sharedViewModel: SharedAppViewModel = koinActivityViewModel())
             onUnsupported = { sharedViewModel.exportSelectedTunnels(uri = null) },
         )
 
-    var showAddMenu by rememberSaveable { mutableStateOf(false) }
     var showImportSheet by rememberSaveable { mutableStateOf(false) }
     var showDeleteModal by rememberSaveable { mutableStateOf(false) }
     var showUrlDialog by rememberSaveable { mutableStateOf(false) }
-    var showNewGroupDialog by rememberSaveable { mutableStateOf(false) }
     var showMoveToGroup by rememberSaveable { mutableStateOf(false) }
-    var showNewGroupForSelection by rememberSaveable { mutableStateOf(false) }
     var showSelectionActions by rememberSaveable { mutableStateOf(false) }
     var showReorderActions by rememberSaveable { mutableStateOf(false) }
     var renameGroup by remember { mutableStateOf<TunnelGroup?>(null) }
@@ -89,7 +85,6 @@ fun TunnelsScreen(sharedViewModel: SharedAppViewModel = koinActivityViewModel())
 
     sharedViewModel.collectSideEffect { sideEffect ->
         when (sideEffect) {
-            LocalSideEffect.Sheet.AddMenu -> showAddMenu = true
             LocalSideEffect.Sheet.ImportTunnels -> showImportSheet = true
             LocalSideEffect.Sheet.MoveToGroup -> showMoveToGroup = true
             LocalSideEffect.Sheet.SelectionActions -> showSelectionActions = true
@@ -214,14 +209,6 @@ fun TunnelsScreen(sharedViewModel: SharedAppViewModel = koinActivityViewModel())
         )
     }
 
-    if (showAddMenu) {
-        AddMenuSheet(
-            onDismiss = { showAddMenu = false },
-            onNewGroupClick = { showNewGroupDialog = true },
-            onImportClick = { showImportSheet = true },
-        )
-    }
-
     if (showImportSheet) {
         TunnelImportSheet(
             onDismiss = { showImportSheet = false },
@@ -239,18 +226,6 @@ fun TunnelsScreen(sharedViewModel: SharedAppViewModel = koinActivityViewModel())
         )
     }
 
-    if (showNewGroupDialog) {
-        GroupNameDialog(
-            title = stringResource(R.string.add_group),
-            initialName = "",
-            onDismiss = { showNewGroupDialog = false },
-            onConfirm = { name ->
-                sharedViewModel.createGroup(name)
-                showNewGroupDialog = false
-            },
-        )
-    }
-
     renameGroup?.let { group ->
         GroupNameDialog(
             title = stringResource(R.string.rename_group),
@@ -264,23 +239,13 @@ fun TunnelsScreen(sharedViewModel: SharedAppViewModel = koinActivityViewModel())
     }
 
     if (showMoveToGroup) {
-        MoveToGroupSheet(
+        GroupSelectionSheet(
             groups = uiState.groups,
+            tunnels = uiState.tunnels,
+            selectedCount = uiState.selectedTunnels.size,
+            onCreateGroup = { name -> sharedViewModel.createGroupAndMoveSelected(name) },
+            onMoveToGroup = { groupId -> sharedViewModel.moveSelectedToGroup(groupId) },
             onDismiss = { showMoveToGroup = false },
-            onSelect = { group -> sharedViewModel.moveSelectedToGroup(group.id) },
-            onNewGroup = { showNewGroupForSelection = true },
-        )
-    }
-
-    if (showNewGroupForSelection) {
-        GroupNameDialog(
-            title = stringResource(R.string.add_group),
-            initialName = "",
-            onDismiss = { showNewGroupForSelection = false },
-            onConfirm = { name ->
-                sharedViewModel.createGroupAndMoveSelected(name)
-                showNewGroupForSelection = false
-            },
         )
     }
 
@@ -289,7 +254,6 @@ fun TunnelsScreen(sharedViewModel: SharedAppViewModel = koinActivityViewModel())
             uiState = uiState,
             onDismiss = { showSelectionActions = false },
             onSelectAll = sharedViewModel::toggleSelectAllTunnels,
-            onMoveToGroup = { showMoveToGroup = true },
             onUngroup = sharedViewModel::ungroupSelected,
             onExport = {
                 val (fileName, mimeType) = uiState.tunnelsForExport.asFileExportName()
