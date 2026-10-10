@@ -146,7 +146,6 @@
     <string name="delete">Löschen</string>
     <string name="camera_permission_required">Kameraberechtigung erforderlich</string>
     <string name="export_failed">Export fehlgeschlagen</string>
-    <string name="current_template">Aktuell: %1$s</string>
     <string name="flavor_template">Variante: %1$s</string>
     <string name="root_required_template">%1$s (root benötigt)</string>
     <string name="recommended_template">%1$s (empfohlen)</string>

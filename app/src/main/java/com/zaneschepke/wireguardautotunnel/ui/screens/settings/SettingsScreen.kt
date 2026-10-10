@@ -188,11 +188,7 @@ fun SettingsScreen(
                     }
                 },
                 title = stringResource(R.string.backend_mode),
-                description = {
-                    DescriptionText(
-                        stringResource(R.string.current_template, appMode.asTitleString(context))
-                    )
-                },
+                description = { DescriptionText(appMode.asTitleString(context)) },
                 onClick = {
                     when (appMode) {
                         TunnelMode.PROXY -> navController.push(Route.ProxySettings)

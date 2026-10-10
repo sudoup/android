@@ -174,7 +174,6 @@
     <string name="camera_permission_required">Camera permission required</string>
     <string name="export_failed">Export failed</string>
     <string name="version_template">Version: %1$s</string>
-    <string name="current_template">Current: %1$s</string>
     <string name="flavor_template">Flavor: %1$s</string>
     <string name="root_required_template">%1$s (root required)</string>
     <string name="recommended_template">%1$s  (recommended)</string>

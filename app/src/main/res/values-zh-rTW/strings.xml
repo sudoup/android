@@ -147,7 +147,6 @@
     <string name="camera_permission_required">需要相機權限</string>
     <string name="export_failed">匯出失敗</string>
     <string name="version_template">版本: %1$s</string>
-    <string name="current_template">目前: %1$s</string>
     <string name="flavor_template">風格: %1$s</string>
     <string name="root_required_template">%1$s (需要 root)</string>
     <string name="recommended_template">%1$s (推薦)</string>

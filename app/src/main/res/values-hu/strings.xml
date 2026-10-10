@@ -148,7 +148,6 @@
     <string name="camera_permission_required">Kamera engedély szükséges</string>
     <string name="export_failed">Exportálás sikertelen</string>
     <string name="version_template">Verzió: %1$s</string>
-    <string name="current_template">Jelenlegi: %1$s</string>
     <string name="flavor_template">Verzió: %1$s</string>
     <string name="root_required_template">%1$s (root szükséges)</string>
     <string name="recommended_template">%1$s (javasolt)</string>

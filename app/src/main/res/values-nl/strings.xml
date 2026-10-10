@@ -133,7 +133,6 @@
     <string name="camera_permission_required">Kamera toestemming vereist</string>
     <string name="export_failed">Export mislukt</string>
     <string name="version_template">Versie: %1$s</string>
-    <string name="current_template">Huidige: %1$s</string>
     <string name="flavor_template">Smaak: %1$s</string>
     <string name="root_required_template">%1$s (root vereist)</string>
     <string name="recommended_template">%1$s (aangeraden)</string>

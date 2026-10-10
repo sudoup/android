@@ -109,19 +109,10 @@ fun TunnelSettingsScreen(
             )
             val selectedEntry = uiState.userTunnels.firstOrNull { it.id == tunnel.entryTunnelId }
             val entryLabel = selectedEntry?.name ?: stringResource(R.string.entry_tunnel_none)
-            val entryDescription =
-                when {
-                    uiState.userTunnels.size <= 1 ->
-                        stringResource(R.string.entry_tunnel_add_another)
-                    else ->
-                        stringResource(R.string.current_template, entryLabel) +
-                            "\n" +
-                            stringResource(R.string.entry_tunnel_desc)
-                }
             SurfaceRow(
                 leading = { Icon(Icons.AutoMirrored.Outlined.AltRoute, contentDescription = null) },
                 title = stringResource(R.string.entry_tunnel),
-                description = { DescriptionText(entryDescription) },
+                description = { DescriptionText(entryLabel) },
                 onClick = { navController.push(Route.EntryTunnel(tunnel.id)) },
             )
         }

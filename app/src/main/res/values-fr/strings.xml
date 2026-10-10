@@ -150,7 +150,6 @@
     <string name="camera_permission_required">Autorisation d\'accès à l\'appareil photo requise</string>
     <string name="export_failed">L\'exportation a échoué</string>
     <string name="version_template">Version : %1$s</string>
-    <string name="current_template">Actuel : %1$s</string>
     <string name="flavor_template">Variante : %1$s</string>
     <string name="root_required_template">%1$s (droits root requis)</string>
     <string name="recommended_template">%1$s (recommandé)</string>
